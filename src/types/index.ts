@@ -26,6 +26,7 @@ export interface Tenant {
   domain: string;
   logo_url?: string;
   theme_color?: string;
+  whatsapp_number?: string;
   email_notifications_active?: boolean;
   created_at: string;
   updated_at: string;

@@ -32,8 +32,7 @@ export class BookingRepository implements IBookingRepository {
       throw new Error('Slug del tenant no proporcionado.');
     }
 
-    // Llamar a la función RPC segura pública
-    const { data, error } = await supabase.rpc('create_booking', {
+    const { error } = await supabase.rpc('create_booking', {
       p_slug: bookingData.slug,
       p_service_id: bookingData.serviceId,
       p_barber_id: bookingData.barberId,
