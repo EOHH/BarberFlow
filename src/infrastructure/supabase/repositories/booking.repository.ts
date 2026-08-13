@@ -4,61 +4,19 @@ import type { Service, Availability, Appointment, BookingFormInput, Barber } fro
 import { toast } from 'sonner';
 
 export class BookingRepository implements IBookingRepository {
-  async getServices(tenantId?: string): Promise<Service[]> {
-    let query = supabase
-      .from('services')
-      .select('*')
-      .eq('is_active', true)
-      .order('price', { ascending: true });
+  async getAvailableSlots(slug: string, serviceId: string, barberId: string, date: string): Promise<string[]> {
+    const { data, error } = await supabase.rpc('get_available_slots', {
+      p_slug: slug,
+      p_service_id: serviceId,
+      p_barber_id: barberId,
+      p_date: date
+    });
 
-    if (tenantId) {
-      query = query.eq('tenant_id', tenantId);
+    if (error) {
+      throw new Error(`Error al calcular horarios disponibles: ${error.message}`);
     }
 
-    const { data, error } = await query;
-
-    if (error) throw new Error(`Error fetching services: ${error.message}`);
-    return data as Service[];
-  }
-
-  async getBarbers(tenantId?: string): Promise<Barber[]> {
-    let query = supabase
-      .from('barbers')
-      .select('*')
-      .order('name', { ascending: true });
-
-    if (tenantId) {
-      query = query.eq('tenant_id', tenantId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) throw new Error(`Error fetching barbers: ${error.message}`);
-    return data as Barber[];
-  }
-
-  async getAvailability(dayOfWeek: number, barberId: string): Promise<Availability[]> {
-    const { data, error } = await supabase
-      .from('availability')
-      .select('*')
-      .eq('day_of_week', dayOfWeek)
-      .eq('barber_id', barberId)
-      .eq('is_active', true);
-
-    if (error) throw new Error(`Error fetching availability: ${error.message}`);
-    return data as Availability[];
-  }
-
-  async getBookedAppointments(date: string, barberId: string): Promise<Appointment[]> {
-    const { data, error } = await supabase
-      .from('appointments')
-      .select('*')
-      .eq('date', date)
-      .eq('barber_id', barberId)
-      .in('status', ['pending', 'confirmed']); // Only active appointments
-
-    if (error) throw new Error(`Error fetching appointments: ${error.message}`);
-    return data as Appointment[];
+    return data as string[];
   }
 
   async createAppointment(bookingData: BookingFormInput): Promise<Appointment> {
@@ -70,13 +28,13 @@ export class BookingRepository implements IBookingRepository {
       throw new Error('Name and phone are required and must be valid.');
     }
 
-    // 1. Obtener tenant_id (MVP asume 1 tenant, pero buscamos el primero disponible)
-    const { data: tenant } = await supabase.from('tenants').select('id').limit(1).single();
-    if (!tenant) throw new Error('No tenant found for this booking.');
+    if (!bookingData.slug) {
+      throw new Error('Slug del tenant no proporcionado.');
+    }
 
-    // 2. Llamar a la función RPC segura
+    // Llamar a la función RPC segura pública
     const { data, error } = await supabase.rpc('create_booking', {
-      p_tenant_id: tenant.id,
+      p_slug: bookingData.slug,
       p_service_id: bookingData.serviceId,
       p_barber_id: bookingData.barberId,
       p_date: bookingData.date,

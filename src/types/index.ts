@@ -85,6 +85,7 @@ export interface Client {
 }
 
 export interface BookingFormInput {
+  slug: string;
   clientName: string;
   phone: string;
   date: string;

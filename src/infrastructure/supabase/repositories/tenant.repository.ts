@@ -6,7 +6,6 @@ export class TenantRepository {
     const { data, error } = await supabase
       .from('tenants')
       .select('*')
-      .limit(1)
       .single();
 
     if (error) throw new Error(`Error fetching tenant: ${error.message}`);
@@ -26,9 +25,12 @@ export class TenantRepository {
   }
 
   async uploadLogo(file: File): Promise<string> {
+    const { data: tenant } = await supabase.from('tenants').select('id').single();
+    if (!tenant) throw new Error("No se pudo identificar el Tenant del usuario.");
+
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `logos/${fileName}`;
+    const filePath = `${tenant.id}/logos/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('brand_assets')

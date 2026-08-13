@@ -15,7 +15,7 @@ export class CategoriesRepository {
   }
 
   async createCategory(name: string): Promise<ServiceCategory> {
-    const { data: tenant } = await supabase.from('tenants').select('id').limit(1).single();
+    const { data: tenant } = await supabase.from('tenants').select('id').single();
     if (!tenant) throw new Error("No se pudo identificar el Tenant del usuario.");
 
     const { data, error } = await supabase

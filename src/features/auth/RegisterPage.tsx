@@ -24,7 +24,7 @@ export function RegisterPage() {
     setIsSubmitting(true);
     setError('');
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -37,8 +37,12 @@ export function RegisterPage() {
     if (error) {
       setError(error.message);
       setIsSubmitting(false);
+    } else if (data.session) {
+      navigate('/onboarding');
     } else {
-      navigate('/admin');
+      // Confirmación de email requerida
+      alert('¡Registro exitoso! Por favor, verifica tu correo electrónico para continuar.');
+      navigate('/login');
     }
   };
 

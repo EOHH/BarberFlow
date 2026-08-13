@@ -14,7 +14,10 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getThemeClasses } from '../../shared/utils/theme';
 
+import { useParams } from 'react-router-dom';
+
 export function BookingPage() {
+  const { slug } = useParams<{ slug: string }>();
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -24,14 +27,16 @@ export function BookingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [createdAppointment, setCreatedAppointment] = useState<Appointment | null>(null);
 
-  const { tenant } = usePublicTenant();
+  const { tenantData } = usePublicTenant(slug);
+  // Usa tenantData.tenant si está disponible, sino un fallback
+  const tenant = tenantData?.tenant || { name: slug || 'BarberShop', theme_color: '#000000', logo_url: undefined };
   const theme = getThemeClasses(tenant?.theme_color);
 
   // TanStack Query
   const { services, barbers, availableSlots, isLoadingServices, isLoadingBarbers } = usePublicBooking(
-    tenant?.id,
+    slug,
     selectedDate, 
-    selectedService?.duration_minutes,
+    selectedService?.id,
     selectedBarber?.id
   );
 
@@ -70,6 +75,7 @@ export function BookingPage() {
     
     try {
       const appointment = await bookingRepository.createAppointment({
+        slug: slug || '',
         serviceId: selectedService.id,
         barberId: selectedBarber.id,
         date: selectedDate,

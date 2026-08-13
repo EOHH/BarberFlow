@@ -16,7 +16,8 @@ export function TenantThemeProvider({ children }: { children: React.ReactNode })
   const { data: tenant } = useQuery({
     queryKey: ['public-tenant'],
     queryFn: async () => {
-      const { data } = await supabase.from('tenants').select('*').limit(1).single();
+      const { data, error } = await supabase.from('tenants').select('*').single();
+      if (error) return null;
       return data;
     },
     staleTime: Infinity, // No refetch constantemente

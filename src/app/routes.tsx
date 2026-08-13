@@ -10,12 +10,18 @@ import { AvailabilityManagerPage } from '../features/staff-admin/AvailabilityMan
 import { ClientsAdminPage } from '../features/crm/ClientsAdminPage';
 import { LoginPage } from '../features/auth/LoginPage';
 import { RegisterPage } from '../features/auth/RegisterPage';
+import { OnboardingPage } from '../features/auth/OnboardingPage';
+import { LandingPage } from '../features/landing/LandingPage';
 import { ProtectedRoute } from '../shared/components/ProtectedRoute';
 
 export const router = createBrowserRouter([
   {
-    path: '/',
+    path: '/booking/:slug',
     element: <BookingPage />,
+  },
+  {
+    path: '/',
+    element: <LandingPage />, 
   },
   {
     path: '/login',
@@ -24,6 +30,10 @@ export const router = createBrowserRouter([
   {
     path: '/register',
     element: <RegisterPage />,
+  },
+  {
+    path: '/onboarding',
+    element: <OnboardingPage />,
   },
   {
     path: '/admin',

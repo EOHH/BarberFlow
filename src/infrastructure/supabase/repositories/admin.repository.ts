@@ -56,7 +56,7 @@ export class AdminRepository implements IAdminRepository {
   }
 
   async createService(service: Omit<Service, 'id' | 'created_at'>): Promise<Service> {
-    const { data: tenant } = await supabase.from('tenants').select('id').limit(1).single();
+    const { data: tenant } = await supabase.from('tenants').select('id').single();
     if (!tenant) throw new Error("No se pudo identificar el Tenant del usuario.");
 
     const payload = { ...service, tenant_id: tenant.id };
@@ -100,9 +100,12 @@ export class AdminRepository implements IAdminRepository {
   }
 
   async uploadImage(file: File): Promise<string> {
+    const { data: tenant } = await supabase.from('tenants').select('id').single();
+    if (!tenant) throw new Error("No se pudo identificar el Tenant del usuario.");
+
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `services/${fileName}`;
+    const filePath = `${tenant.id}/services/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('brand_assets')

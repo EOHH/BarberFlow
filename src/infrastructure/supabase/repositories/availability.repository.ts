@@ -20,7 +20,7 @@ export class AvailabilityRepository {
     // Wait, we need to delete existing ones for the barber and insert new ones to avoid duplicate day_of_week
     // Or we use upsert if day_of_week + barber_id is a unique key.
     // Easiest is to delete and insert inside a transaction, or sequentially if Supabase REST.
-    const { data: tenant } = await supabase.from('tenants').select('id').limit(1).single();
+    const { data: tenant } = await supabase.from('tenants').select('id').single();
     if (!tenant) throw new Error("No se pudo identificar el Tenant del usuario.");
     
     const { error: deleteError } = await supabase

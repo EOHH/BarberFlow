@@ -1,36 +1,32 @@
 import { useQuery } from '@tanstack/react-query';
 import { bookingRepository } from '../../infrastructure/supabase/repositories/booking.repository';
 import { BookingService } from '../../core/use-cases/booking.service';
+import { usePublicTenant } from './usePublicTenant';
 
-export function usePublicBooking(tenantId?: string, selectedDate?: string, durationMinutes?: number, barberId?: string) {
-  const { data: services = [], isLoading: isLoadingServices } = useQuery({
-    queryKey: ['public-services', tenantId],
-    queryFn: () => bookingRepository.getServices(tenantId),
-    enabled: !!tenantId,
-  });
+export function usePublicBooking(slug?: string, selectedDate?: string, serviceId?: string, barberId?: string) {
+  const { tenantData, isLoading: isLoadingTenant } = usePublicTenant(slug);
 
-  const { data: barbers = [], isLoading: isLoadingBarbers } = useQuery({
-    queryKey: ['public-barbers', tenantId],
-    queryFn: () => bookingRepository.getBarbers(tenantId),
-    enabled: !!tenantId,
-  });
+  const services = tenantData?.services || [];
+  const barbers = tenantData?.barbers || [];
+  const availability = tenantData?.availability || [];
 
   const { data: availableSlots = [], isLoading: isLoadingSlots } = useQuery({
-    queryKey: ['public-slots', selectedDate, durationMinutes, barberId],
+    queryKey: ['public-slots', slug, selectedDate, serviceId, barberId],
     queryFn: async () => {
-      if (!selectedDate || !durationMinutes || !barberId) return [];
+      if (!selectedDate || !serviceId || !barberId || !slug) return [];
       const bookingService = new BookingService(bookingRepository);
-      return bookingService.getAvailableSlots(selectedDate, durationMinutes, barberId);
+      return bookingService.getAvailableSlots(slug, serviceId, barberId, selectedDate);
     },
-    enabled: !!selectedDate && !!durationMinutes && !!barberId,
+    enabled: !!selectedDate && !!serviceId && !!barberId && !!slug,
   });
 
   return {
     services,
     barbers,
+    availability,
     availableSlots,
-    isLoadingServices,
-    isLoadingBarbers,
+    isLoadingServices: isLoadingTenant,
+    isLoadingBarbers: isLoadingTenant,
     isLoadingSlots,
   };
 }
