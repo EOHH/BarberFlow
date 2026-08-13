@@ -1,18 +1,16 @@
 import type { Barber } from '../../../types';
 import { User, Star } from 'lucide-react';
-import { usePublicTenant } from '../../../shared/hooks/usePublicTenant';
-import { getThemeClasses } from '../../../shared/utils/theme';
+import type { ThemeClasses } from '../../../shared/utils/theme';
 
 interface Props {
   barbers: Barber[];
   selectedBarberId?: string;
   onSelect: (id: string) => void;
   isLoading: boolean;
+  theme: ThemeClasses;
 }
 
-export function BarberSelection({ barbers, selectedBarberId, onSelect, isLoading }: Props) {
-  const { tenant } = usePublicTenant();
-  const theme = getThemeClasses(tenant?.theme_color);
+export function BarberSelection({ barbers, selectedBarberId, onSelect, isLoading, theme }: Props) {
 
   if (isLoading) {
     return (

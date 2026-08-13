@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
-import { usePublicTenant } from '../../../shared/hooks/usePublicTenant';
-import { getThemeClasses } from '../../../shared/utils/theme';
+import type { ThemeClasses } from '../../../shared/utils/theme';
 
 interface Props {
   onSubmit: (clientName: string, phone: string) => void;
   isSubmitting: boolean;
+  theme: ThemeClasses;
 }
 
-export function BookingForm({ onSubmit, isSubmitting }: Props) {
-  const { tenant } = usePublicTenant();
-  const theme = getThemeClasses(tenant?.theme_color);
+export function BookingForm({ onSubmit, isSubmitting, theme }: Props) {
 
   const [clientName, setClientName] = useState('');
   const [phone, setPhone] = useState('');

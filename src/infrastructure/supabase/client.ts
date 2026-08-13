@@ -11,7 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-export const barberWhatsapp = import.meta.env.VITE_BARBER_WHATSAPP || '1234567890'; // Fallback if not provided
+
 
 if (!supabaseUrl || !supabaseAnonKey) {
   const missingVar = !supabaseUrl ? 'VITE_SUPABASE_URL' : 'VITE_SUPABASE_ANON_KEY';

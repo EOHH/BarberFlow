@@ -406,7 +406,7 @@ export function BookingPage() {
                     services={services}
                     selectedServiceId={selectedService?.id}
                     onSelect={(id) => { 
-                      const s = services.find(x => x.id === id);
+                      const s = services.find((x: Service) => x.id === id);
                       if (s) {
                         setSelectedService(s); 
                         // Resetear estado posterior para evitar State Leak
@@ -417,6 +417,7 @@ export function BookingPage() {
                       }
                     }}
                     isLoading={isLoadingServices}
+                    theme={theme}
                   />
 
                   {currentTab === 'servicios' && (
@@ -559,7 +560,7 @@ export function BookingPage() {
                   barbers={barbers}
                   selectedBarberId={selectedBarber?.id}
                   onSelect={(id) => {
-                    const b = barbers.find(x => x.id === id);
+                    const b = barbers.find((x: Barber) => x.id === id);
                     if (b) {
                       setSelectedBarber(b);
                       // Resetear estado de fecha/hora por si el barbero cambió
@@ -569,6 +570,7 @@ export function BookingPage() {
                     }
                   }}
                   isLoading={isLoadingBarbers}
+                  theme={theme}
                 />
               )}
 
@@ -580,6 +582,7 @@ export function BookingPage() {
                     setSelectedTime('');
                     handleNext(); 
                   }}
+                  theme={theme}
                 />
               )}
 
@@ -589,6 +592,7 @@ export function BookingPage() {
                   selectedTime={selectedTime}
                   onSelect={(t) => { setSelectedTime(t); handleNext(); }}
                   isLoading={false}
+                  theme={theme}
                 />
               )}
 
@@ -596,6 +600,7 @@ export function BookingPage() {
                 <BookingForm
                   onSubmit={handleBookingSubmit}
                   isSubmitting={false}
+                  theme={theme}
                 />
               )}
 
@@ -604,6 +609,8 @@ export function BookingPage() {
                   appointment={createdAppointment}
                   service={selectedService}
                   onReset={handleReset}
+                  theme={theme}
+                  tenant={tenant}
                 />
               )}
 

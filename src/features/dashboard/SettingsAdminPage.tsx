@@ -24,6 +24,7 @@ export function SettingsAdminPage() {
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [tenantName, setTenantName] = useState<string>('');
   const [tenantDomain, setTenantDomain] = useState<string>('');
+  const [whatsappNumber, setWhatsappNumber] = useState<string>('');
   const [emailActive, setEmailActive] = useState<boolean>(true);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -34,6 +35,7 @@ export function SettingsAdminPage() {
       if (tenant.logo_url) setLogoPreview(tenant.logo_url);
       setTenantName(tenant.name || '');
       setTenantDomain(tenant.domain || '');
+      setWhatsappNumber(tenant.whatsapp_number || '');
       if (tenant.email_notifications_active !== undefined) {
         setEmailActive(tenant.email_notifications_active);
       }
@@ -73,6 +75,7 @@ export function SettingsAdminPage() {
           domain: tenantDomain.trim(),
           theme_color: selectedColor,
           logo_url: finalLogoUrl,
+          whatsapp_number: whatsappNumber.trim(),
           email_notifications_active: emailActive
         }
       });
@@ -174,6 +177,20 @@ export function SettingsAdminPage() {
                     .app
                   </div>
                 </div>
+              </div>
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="block text-sm font-semibold flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4 text-[#25D366]" />
+                  Número de WhatsApp
+                </label>
+                <input 
+                  type="text" 
+                  value={whatsappNumber}
+                  onChange={e => setWhatsappNumber(e.target.value.replace(/[^0-9+]/g, ''))}
+                  className="w-full px-4 py-3 bg-background border rounded-xl focus:ring-2 focus:ring-primary outline-none transition-shadow shadow-sm"
+                  placeholder="+51999888777"
+                />
+                <p className="text-xs text-muted-foreground">Este número se usará en el botón público de confirmar reserva.</p>
               </div>
             </div>
           </div>

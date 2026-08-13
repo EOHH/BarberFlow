@@ -1,16 +1,14 @@
-import { usePublicTenant } from '../../../shared/hooks/usePublicTenant';
-import { getThemeClasses } from '../../../shared/utils/theme';
+import type { ThemeClasses } from '../../../shared/utils/theme';
 
 interface Props {
   timeSlots: string[];
   selectedTime?: string;
   onSelect: (time: string) => void;
   isLoading: boolean;
+  theme: ThemeClasses;
 }
 
-export function TimeSelection({ timeSlots, selectedTime, onSelect, isLoading }: Props) {
-  const { tenant } = usePublicTenant();
-  const theme = getThemeClasses(tenant?.theme_color);
+export function TimeSelection({ timeSlots, selectedTime, onSelect, isLoading, theme }: Props) {
 
   if (isLoading) {
     return (

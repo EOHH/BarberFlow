@@ -1,22 +1,22 @@
 import type { Appointment, Service } from '../../../types';
 import { CheckCircle2, Calendar, Clock, Scissors } from 'lucide-react';
-import { barberWhatsapp } from '../../../infrastructure/supabase/client';
-import { usePublicTenant } from '../../../shared/hooks/usePublicTenant';
-import { getThemeClasses } from '../../../shared/utils/theme';
+import type { ThemeClasses } from '../../../shared/utils/theme';
+import type { Tenant } from '../../../types';
 
 interface Props {
   appointment: Appointment;
   service: Service;
   onReset: () => void;
+  theme: ThemeClasses;
+  tenant: Tenant | any;
 }
 
-export function BookingSuccess({ appointment, service, onReset }: Props) {
-  const { tenant } = usePublicTenant();
-  const theme = getThemeClasses(tenant?.theme_color);
+export function BookingSuccess({ appointment, service, onReset, theme, tenant }: Props) {
 
   const generateWhatsAppLink = () => {
     const text = `Hola! He reservado una cita para ${service.name} el día ${appointment.date} a las ${appointment.time}. Mi nombre es ${appointment.client_name}.`;
-    return `https://wa.me/${barberWhatsapp}?text=${encodeURIComponent(text)}`;
+    const whatsapp = tenant?.whatsapp_number || '1234567890';
+    return `https://wa.me/${whatsapp}?text=${encodeURIComponent(text)}`;
   };
 
   return (

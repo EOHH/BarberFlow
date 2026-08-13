@@ -1,19 +1,17 @@
 import { useState, useMemo } from 'react';
 import type { Service } from '../../../types';
 import { Scissors } from 'lucide-react';
-import { usePublicTenant } from '../../../shared/hooks/usePublicTenant';
-import { getThemeClasses } from '../../../shared/utils/theme';
+import type { ThemeClasses } from '../../../shared/utils/theme';
 
 interface Props {
   services: Service[];
   selectedServiceId?: string;
   onSelect: (serviceId: string) => void;
   isLoading: boolean;
+  theme: ThemeClasses;
 }
 
-export function ServiceSelection({ services, selectedServiceId, onSelect, isLoading }: Props) {
-  const { tenant } = usePublicTenant();
-  const theme = getThemeClasses(tenant?.theme_color);
+export function ServiceSelection({ services, selectedServiceId, onSelect, isLoading, theme }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('Todos');
 
   const categories = useMemo(() => {

@@ -1,6 +1,6 @@
 import { supabase } from '../client';
 import type { IBookingRepository } from '../../../core/interfaces/booking.repository.interface';
-import type { Service, Availability, Appointment, BookingFormInput, Barber } from '../../../types';
+import type { Appointment, BookingFormInput } from '../../../types';
 import { toast } from 'sonner';
 
 export class BookingRepository implements IBookingRepository {
@@ -56,7 +56,15 @@ export class BookingRepository implements IBookingRepository {
         toast.success(`MOCK SERVERLESS: Correo de confirmación encolado para ${phone}`);
     }, 1500); // Simulando delay de Webhook -> Edge Function
 
-    return data as Appointment;
+    return {
+      date: bookingData.date,
+      time: bookingData.time,
+      client_name: clientName,
+      phone: phone,
+      service_id: bookingData.serviceId,
+      barber_id: bookingData.barberId,
+      status: 'pending'
+    } as Appointment;
   }
 }
 

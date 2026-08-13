@@ -1,14 +1,12 @@
-import { usePublicTenant } from '../../../shared/hooks/usePublicTenant';
-import { getThemeClasses } from '../../../shared/utils/theme';
+import type { ThemeClasses } from '../../../shared/utils/theme';
 
 interface Props {
   selectedDate: string;
   onSelect: (date: string) => void;
+  theme: ThemeClasses;
 }
 
-export function DateSelection({ selectedDate, onSelect }: Props) {
-  const { tenant } = usePublicTenant();
-  const theme = getThemeClasses(tenant?.theme_color);
+export function DateSelection({ selectedDate, onSelect, theme }: Props) {
   // Generate next 14 days
   const days = Array.from({ length: 14 }).map((_, i) => {
     const d = new Date();

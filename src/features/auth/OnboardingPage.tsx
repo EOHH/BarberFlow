@@ -74,7 +74,7 @@ export function OnboardingPage() {
 
     try {
       // Llamar a la RPC segura
-      const { data, error } = await supabase.rpc('onboard_tenant', {
+      const { error } = await supabase.rpc('onboard_tenant', {
         p_shop_name: shopName,
         p_slug: slug
       });

@@ -1,4 +1,4 @@
-import type { Service, Availability, Appointment, BookingFormInput, Barber } from '../../types';
+import type { Appointment, BookingFormInput } from '../../types';
 
 export interface IBookingRepository {
   getAvailableSlots(slug: string, serviceId: string, barberId: string, date: string): Promise<string[]>;

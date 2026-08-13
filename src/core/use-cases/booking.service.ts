@@ -1,7 +1,5 @@
 import type { IBookingRepository } from '../interfaces/booking.repository.interface';
-import { toZonedTime, format } from 'date-fns-tz';
 
-const TIMEZONE = 'America/Lima';
 
 export class BookingService {
   private readonly repository: IBookingRepository;

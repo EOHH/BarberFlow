@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Service } from '../../../types';
-import { X as XIcon, Upload, Loader2, Image as ImageIcon, Plus, Check, Clock, DollarSign, Type, FileText, Tag, ImagePlus } from 'lucide-react';
+import { X as XIcon, Upload, Loader2, Image as ImageIcon, Plus, Check, Clock, Type, FileText, Tag, ImagePlus } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { toast } from 'sonner';
 import { useCategoriesAdmin } from '../../../shared/hooks/useCategoriesAdmin';
