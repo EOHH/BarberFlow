@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTenantSettings } from '../../shared/hooks/useTenantSettings';
 import imageCompression from 'browser-image-compression';
-import { Image as ImageIcon, Upload, Save, Loader2, Palette, CheckCircle2, Store, Bell, Mail, MessageCircle, Star } from 'lucide-react';
+import { Image as ImageIcon, Upload, Save, Loader2, Palette, CheckCircle2, Store, Bell, Mail, MessageCircle, Star, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const PREDEFINED_PALETTES = [
@@ -85,6 +85,28 @@ export function SettingsAdminPage() {
     }
   };
 
+  const handleShare = async () => {
+    if (!tenantDomain) return;
+    
+    const url = `${window.location.origin}/booking/${tenantDomain}`;
+    const text = `🔥 ¡Reserva tu cita en ${tenantName || 'nuestra barbería'}! ✂️\n\nAgenda tu próximo corte rápida y fácilmente haciendo clic en nuestro enlace oficial:\n👉 ${url}\n\n¡Te esperamos!`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Reservar cita en ${tenantName || 'nuestra barbería'}`,
+          text: text,
+        });
+      } catch (err) {
+        console.log('Error compartiendo', err);
+      }
+    } else {
+      // Fallback a WhatsApp Web/App si no soporta navigator.share
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+      window.open(whatsappUrl, '_blank');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-[50vh] items-center justify-center animate-pulse">
@@ -164,7 +186,17 @@ export function SettingsAdminPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-semibold">Dominio (URL)</label>
+                <label className="block text-sm font-semibold flex items-center justify-between">
+                  Dominio (URL)
+                  <button 
+                    onClick={handleShare}
+                    type="button"
+                    className="text-xs text-primary font-bold hover:underline flex items-center gap-1 bg-primary/10 px-2 py-1 rounded-md transition-colors hover:bg-primary/20"
+                    title="Compartir enlace público"
+                  >
+                    <Share2 className="w-3.5 h-3.5" /> Compartir Link
+                  </button>
+                </label>
                 <div className="relative">
                   <input 
                     type="text" 
