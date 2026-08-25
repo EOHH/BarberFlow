@@ -25,6 +25,9 @@ export function SettingsAdminPage() {
   const [tenantName, setTenantName] = useState<string>('');
   const [tenantDomain, setTenantDomain] = useState<string>('');
   const [whatsappNumber, setWhatsappNumber] = useState<string>('');
+  const [address, setAddress] = useState<string>('');
+  const [businessHours, setBusinessHours] = useState<string>('');
+  const [googleMapsUrl, setGoogleMapsUrl] = useState<string>('');
   const [emailActive, setEmailActive] = useState<boolean>(true);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -36,6 +39,9 @@ export function SettingsAdminPage() {
       setTenantName(tenant.name || '');
       setTenantDomain(tenant.domain || '');
       setWhatsappNumber(tenant.whatsapp_number || '');
+      setAddress(tenant.address || '');
+      setBusinessHours(tenant.business_hours || '');
+      setGoogleMapsUrl(tenant.google_maps_url || '');
       if (tenant.email_notifications_active !== undefined) {
         setEmailActive(tenant.email_notifications_active);
       }
@@ -76,6 +82,9 @@ export function SettingsAdminPage() {
           theme_color: selectedColor,
           logo_url: finalLogoUrl,
           whatsapp_number: whatsappNumber.trim(),
+          address: address.trim(),
+          business_hours: businessHours.trim(),
+          google_maps_url: googleMapsUrl.trim(),
           email_notifications_active: emailActive
         }
       });
@@ -223,6 +232,41 @@ export function SettingsAdminPage() {
                   placeholder="+51999888777"
                 />
                 <p className="text-xs text-muted-foreground">Este número se usará en el botón público de confirmar reserva.</p>
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="block text-sm font-semibold">Dirección de la Barbería</label>
+                <input 
+                  type="text" 
+                  value={address}
+                  onChange={e => setAddress(e.target.value)}
+                  className="w-full px-4 py-3 bg-background border rounded-xl focus:ring-2 focus:ring-primary outline-none transition-shadow shadow-sm"
+                  placeholder="Av. Principal 123, Distrito Central"
+                />
+                <p className="text-xs text-muted-foreground">La dirección física que verán tus clientes en la página pública.</p>
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="block text-sm font-semibold">Horarios de Atención</label>
+                <textarea 
+                  value={businessHours}
+                  onChange={e => setBusinessHours(e.target.value)}
+                  className="w-full px-4 py-3 bg-background border rounded-xl focus:ring-2 focus:ring-primary outline-none transition-shadow shadow-sm min-h-[80px]"
+                  placeholder="Lunes a Sábado: 10:00 AM - 9:00 PM&#10;Domingos: 10:00 AM - 3:00 PM"
+                />
+                <p className="text-xs text-muted-foreground">Los días y horas en que tu barbería está abierta.</p>
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="block text-sm font-semibold">Enlace de Google Maps</label>
+                <input 
+                  type="url" 
+                  value={googleMapsUrl}
+                  onChange={e => setGoogleMapsUrl(e.target.value)}
+                  className="w-full px-4 py-3 bg-background border rounded-xl focus:ring-2 focus:ring-primary outline-none transition-shadow shadow-sm"
+                  placeholder="https://maps.app.goo.gl/..."
+                />
+                <p className="text-xs text-muted-foreground">Pega aquí el enlace para compartir de tu ubicación oficial. Se usará en el botón "Cómo Llegar".</p>
               </div>
             </div>
           </div>

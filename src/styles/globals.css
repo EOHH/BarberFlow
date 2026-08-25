@@ -24,8 +24,9 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: 'Playfair Display', serif;
   --font-serif: 'Playfair Display', serif;
+  --font-inter: 'Inter', system-ui, sans-serif;
   
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -109,6 +110,6 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-sans);
   }
 }

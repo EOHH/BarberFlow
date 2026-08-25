@@ -1,10 +1,10 @@
 import { supabase } from '../client';
 import type { IBookingRepository } from '../../../core/interfaces/booking.repository.interface';
-import type { Appointment, BookingFormInput } from '../../../types';
+import type { Appointment, BookingFormInput, TimeSlot } from '../../../types';
 import { toast } from 'sonner';
 
 export class BookingRepository implements IBookingRepository {
-  async getAvailableSlots(slug: string, serviceId: string, barberId: string, date: string): Promise<string[]> {
+  async getAvailableSlots(slug: string, serviceId: string, barberId: string, date: string): Promise<TimeSlot[]> {
     const { data, error } = await supabase.rpc('get_available_slots', {
       p_slug: slug,
       p_service_id: serviceId,
@@ -16,7 +16,11 @@ export class BookingRepository implements IBookingRepository {
       throw new Error(`Error al calcular horarios disponibles: ${error.message}`);
     }
 
-    return data as string[];
+    const slots = (data || []) as string[];
+    return slots.map(time => ({
+      time: time.substring(0, 5), // "09:00"
+      available: true
+    }));
   }
 
   async createAppointment(bookingData: BookingFormInput): Promise<Appointment> {
@@ -32,7 +36,7 @@ export class BookingRepository implements IBookingRepository {
       throw new Error('Slug del tenant no proporcionado.');
     }
 
-    const { error } = await supabase.rpc('create_booking', {
+    const { data, error } = await supabase.rpc('create_booking', {
       p_slug: bookingData.slug,
       p_service_id: bookingData.serviceId,
       p_barber_id: bookingData.barberId,
@@ -56,6 +60,7 @@ export class BookingRepository implements IBookingRepository {
     }, 1500); // Simulando delay de Webhook -> Edge Function
 
     return {
+      id: data?.id,
       date: bookingData.date,
       time: bookingData.time,
       client_name: clientName,

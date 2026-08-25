@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminRepository } from '../../infrastructure/supabase/repositories/admin.repository';
 import type { Appointment } from '../../types';
 import { toast } from 'sonner';
+import { useEffect } from 'react';
+import { supabase } from '../../infrastructure/supabase/client';
 
 export function useAdminAppointments(date: string) {
   const queryClient = useQueryClient();
@@ -11,6 +13,36 @@ export function useAdminAppointments(date: string) {
     queryKey,
     queryFn: () => adminRepository.getAppointmentsByDate(date),
   });
+
+  // Habilitar pruebas visuales: Supabase Realtime
+  useEffect(() => {
+    // Nos suscribimos a cualquier UPDATE en la tabla appointments
+    const channel = supabase
+      .channel('public:appointments')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'appointments' },
+        (payload) => {
+          console.log('Realtime Update recibido:', payload);
+          // Invalidamos la caché para que React Query haga un refetch en background 
+          // y la UI cambie de color / estado al instante.
+          queryClient.invalidateQueries({ queryKey });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'appointments' },
+        (payload) => {
+          console.log('Realtime Insert recibido:', payload);
+          queryClient.invalidateQueries({ queryKey });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, queryKey]);
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: Appointment['status'] }) => 

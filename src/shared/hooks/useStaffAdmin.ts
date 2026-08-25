@@ -48,9 +48,18 @@ export function useStaffAdmin() {
     }
   };
 
-  const deleteBarber = async (id: string) => {
+  const deactivateBarber = async (id: string) => {
     try {
-      await staffRepository.deleteBarber(id);
+      await staffRepository.deactivateBarber(id);
+      await fetchBarbers();
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const reactivateBarber = async (id: string) => {
+    try {
+      await staffRepository.reactivateBarber(id);
       await fetchBarbers();
     } catch (err) {
       throw err;
@@ -63,7 +72,8 @@ export function useStaffAdmin() {
     createBarber,
     updateBarber,
     uploadAvatar,
-    deleteBarber,
+    deactivateBarber,
+    reactivateBarber,
     refresh: fetchBarbers
   };
 }

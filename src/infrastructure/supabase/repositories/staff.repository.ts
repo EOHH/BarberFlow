@@ -64,14 +64,25 @@ export class StaffRepository {
     return data.publicUrl;
   }
 
-  async deleteBarber(id: string): Promise<void> {
+  async deactivateBarber(id: string): Promise<void> {
     const { error } = await supabase
       .from('barbers')
-      .delete()
+      .update({ is_active: false })
       .eq('id', id);
 
     if (error) {
-      throw new Error(`Error al eliminar el barbero: ${error.message}`);
+      throw new Error(`Error al desactivar el barbero: ${error.message}`);
+    }
+  }
+
+  async reactivateBarber(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('barbers')
+      .update({ is_active: true })
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(`Error al reactivar el barbero: ${error.message}`);
     }
   }
 }

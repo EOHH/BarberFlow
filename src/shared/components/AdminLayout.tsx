@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Scissors, Menu, X, LogOut, ChevronDown, Users, Calendar as CalendarIcon, Settings as SettingsIcon, Bell, Moon, Sun, Crown, Home, MoreHorizontal, Plus } from 'lucide-react';
+import { LayoutDashboard, Scissors, Menu, X, LogOut, ChevronDown, Users, Calendar as CalendarIcon, Settings as SettingsIcon, Bell, Moon, Sun, Crown, Home, MoreHorizontal, Plus, Image as ImageIcon } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../features/auth/AuthContext';
 import { AdminThemeProvider, useAdminTheme } from './AdminThemeProvider';
@@ -44,6 +44,7 @@ function AdminLayoutInner() {
     { name: 'Clientes CRM', href: '/admin/clients', icon: Users, mobileIcon: Users },
     { name: 'Personal', href: '/admin/staff', icon: Users },
     { name: 'Servicios', href: '/admin/services', icon: Scissors },
+    { name: 'Galería', href: '/admin/gallery', icon: ImageIcon },
     { name: 'Marca Blanca', href: '/admin/settings', icon: SettingsIcon },
   ];
 

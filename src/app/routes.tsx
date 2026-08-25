@@ -1,8 +1,12 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { BookingPage } from '../features/booking/BookingPage';
+import { PublicGalleryPage } from '../features/booking/PublicGalleryPage';
+import { ClientPortal } from '../features/booking/ClientPortal';
+import { FindBooking } from '../features/booking/FindBooking';
 import { AdminLayout } from '../shared/components/AdminLayout';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { AdminAppointmentsPage } from '../features/dashboard/AdminAppointmentsPage';
+import { GalleryAdminPage } from '../features/dashboard/GalleryAdminPage';
 import { SettingsAdminPage } from '../features/dashboard/SettingsAdminPage';
 import { ServicesAdminPage } from '../features/services-admin/ServicesAdminPage';
 import { StaffAdminPage } from '../features/staff-admin/StaffAdminPage';
@@ -18,6 +22,18 @@ export const router = createBrowserRouter([
   {
     path: '/booking/:slug',
     element: <BookingPage />,
+  },
+  {
+    path: '/booking/:slug/gallery',
+    element: <PublicGalleryPage />,
+  },
+  {
+    path: '/booking/:slug/status/:id',
+    element: <ClientPortal />,
+  },
+  {
+    path: '/booking/:slug/find',
+    element: <FindBooking />,
   },
   {
     path: '/',
@@ -65,6 +81,10 @@ export const router = createBrowserRouter([
           {
             path: 'clients',
             element: <ClientsAdminPage />,
+          },
+          {
+            path: 'gallery',
+            element: <GalleryAdminPage />,
           },
           {
             path: 'settings',

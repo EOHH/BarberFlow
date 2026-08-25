@@ -27,6 +27,9 @@ export interface Tenant {
   logo_url?: string;
   theme_color?: string;
   whatsapp_number?: string;
+  address?: string;
+  business_hours?: string;
+  google_maps_url?: string;
   email_notifications_active?: boolean;
   created_at: string;
   updated_at: string;
@@ -41,6 +44,7 @@ export interface Barber {
   specialty?: string;
   bio?: string;
   rating?: number;
+  is_active?: boolean;
   created_at: string;
 }
 
@@ -64,7 +68,7 @@ export interface Appointment {
   date: string;
   time: string;
   service_id: string;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'pending' | 'confirmed' | 'cancelled' | 'in_progress' | 'completed';
   created_at: string;
   
   // Relations
@@ -93,4 +97,18 @@ export interface BookingFormInput {
   time: string;
   serviceId: string;
   barberId: string;
+}
+
+export interface TimeSlot {
+  time: string;
+  available: boolean;
+  reason?: 'past' | 'booked' | null;
+}
+
+export interface GalleryImage {
+  id: string;
+  tenant_id: string;
+  image_url: string;
+  caption?: string;
+  created_at: string;
 }

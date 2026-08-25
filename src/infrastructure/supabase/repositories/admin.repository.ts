@@ -31,7 +31,7 @@ export class AdminRepository implements IAdminRepository {
     return data as Appointment[];
   }
 
-  async updateAppointmentStatus(id: string, status: 'pending' | 'confirmed' | 'cancelled' | 'completed'): Promise<void> {
+  async updateAppointmentStatus(id: string, status: 'pending' | 'confirmed' | 'cancelled' | 'in_progress' | 'completed'): Promise<void> {
     const { error } = await supabase
       .from('appointments')
       .update({ status })

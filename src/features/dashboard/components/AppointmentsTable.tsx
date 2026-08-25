@@ -3,7 +3,7 @@ import type { Appointment, Service } from '../../../types';
 interface Props {
   appointments: Appointment[];
   services: Service[];
-  onUpdateStatus: (id: string, status: 'pending' | 'confirmed' | 'cancelled') => void;
+  onUpdateStatus: (id: string, status: 'pending' | 'confirmed' | 'cancelled' | 'in_progress' | 'completed') => void;
   isLoading: boolean;
 }
 
@@ -31,10 +31,14 @@ export function AppointmentsTable({ appointments, services, onUpdateStatus, isLo
     switch(status) {
       case 'confirmed':
         return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Confirmada</span>;
+      case 'in_progress':
+        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 animate-pulse">En atención</span>;
+      case 'completed':
+        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Completada</span>;
       case 'cancelled':
         return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Cancelada</span>;
       default:
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">Pendiente</span>;
+        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400">Pendiente</span>;
     }
   };
 

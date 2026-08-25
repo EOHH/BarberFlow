@@ -1,5 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { usePublicBooking } from '../../shared/hooks/usePublicBooking';
+import { usePublicGallery } from '../../shared/hooks/usePublicGallery';
+import { FindBooking } from './FindBooking';
+import { PublicGalleryTab } from './PublicGalleryTab';
+
 import { ServiceSelection } from './components/ServiceSelection';
 import { BarberSelection } from './components/BarberSelection';
 import { DateSelection } from './components/DateSelection';
@@ -10,11 +15,16 @@ import { bookingRepository } from '../../infrastructure/supabase/repositories/bo
 import type { Service, Appointment, Barber } from '../../types';
 import { ChevronLeft } from 'lucide-react';
 import { usePublicTenant } from '../../shared/hooks/usePublicTenant';
+import { useDynamicPWA } from '../../shared/hooks/useDynamicPWA';
+import { usePublicRealtime } from '../../shared/hooks/usePublicRealtime';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getThemeClasses } from '../../shared/utils/theme';
-
-import { useParams } from 'react-router-dom';
+import { LiveBarberStatus } from './components/LiveBarberStatus';
+import { Testimonials } from './components/Testimonials';
+import { Gallery } from './components/Gallery';
+import { LocationContact } from './components/LocationContact';
+import { ServiceCarousel } from './components/ServiceCarousel';
 
 export function BookingPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -22,8 +32,28 @@ export function BookingPage() {
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
-  const [step, setStep] = useState(1);
-  const [currentTab, setCurrentTab] = useState<'inicio' | 'servicios'>('inicio');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const step = Number(searchParams.get('step')) || 1;
+
+  const setStep = (newStep: number | ((prev: number) => number)) => {
+    const nextStep = typeof newStep === 'function' ? newStep(step) : newStep;
+    if (nextStep === 1) {
+      setSearchParams(new URLSearchParams());
+    } else {
+      setSearchParams({ step: nextStep.toString() });
+    }
+  };
+
+  const tabParam = searchParams.get('tab') as 'inicio' | 'servicios' | 'galeria' | 'citas';
+  const currentTab = tabParam && ['inicio', 'servicios', 'galeria', 'citas'].includes(tabParam) ? tabParam : 'inicio';
+
+  const setCurrentTab = (tab: 'inicio' | 'servicios' | 'galeria' | 'citas') => {
+    const currentParams: Record<string, string> = {};
+    searchParams.forEach((value, key) => {
+      currentParams[key] = value;
+    });
+    setSearchParams({ ...currentParams, tab });
+  };
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [createdAppointment, setCreatedAppointment] = useState<Appointment | null>(null);
 
@@ -32,6 +62,10 @@ export function BookingPage() {
   const tenant = tenantData?.tenant || { name: slug || 'BarberShop', theme_color: '#000000', logo_url: undefined };
   const theme = getThemeClasses(tenant?.theme_color);
 
+  useDynamicPWA(tenant);
+  // Setup Realtime subscriptions
+  usePublicRealtime(tenant?.id, slug);
+
   // TanStack Query
   const { services, barbers, availableSlots, isLoadingServices, isLoadingBarbers } = usePublicBooking(
     slug,
@@ -39,6 +73,15 @@ export function BookingPage() {
     selectedService?.id,
     selectedBarber?.id
   );
+
+  const { galleryImages } = usePublicGallery(slug);
+
+  // Redirigir al inicio si se pierde el estado por HMR o recarga
+  useEffect(() => {
+    if (step > 1 && !selectedService) {
+      setStep(1);
+    }
+  }, [step, selectedService]);
 
 
   const handleNext = () => {
@@ -171,6 +214,20 @@ export function BookingPage() {
               Servicios
               {currentTab === 'servicios' && <span className={`absolute -bottom-7 left-0 w-full h-[2px] ${theme.bg}`}></span>}
             </button>
+            <button 
+              onClick={() => setCurrentTab('galeria')}
+              className={`text-sm font-medium transition-colors relative ${currentTab === 'galeria' ? theme.text : 'text-zinc-400 hover:text-white'}`}
+            >
+              Galería
+              {currentTab === 'galeria' && <span className={`absolute -bottom-7 left-0 w-full h-[2px] ${theme.bg}`}></span>}
+            </button>
+            <button 
+              onClick={() => setCurrentTab('citas')}
+              className={`text-sm font-medium transition-colors relative ${currentTab === 'citas' ? theme.text : 'text-zinc-400 hover:text-white'}`}
+            >
+              Mis Citas
+              {currentTab === 'citas' && <span className={`absolute -bottom-7 left-0 w-full h-[2px] ${theme.bg}`}></span>}
+            </button>
           </nav>
         )}
 
@@ -240,6 +297,24 @@ export function BookingPage() {
                 >
                   Servicios
                 </button>
+                <button 
+                  onClick={() => {
+                    setCurrentTab('galeria');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`text-lg font-medium text-left transition-colors ${currentTab === 'galeria' ? theme.text : 'text-zinc-400 hover:text-white'}`}
+                >
+                  Galería
+                </button>
+                <button 
+                  onClick={() => {
+                    setCurrentTab('citas');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`text-lg font-medium text-left transition-colors ${currentTab === 'citas' ? theme.text : 'text-zinc-400 hover:text-white'}`}
+                >
+                  Mis Citas
+                </button>
                 
                 <div className="mt-auto pt-6 border-t border-zinc-800/50">
                   <button 
@@ -271,9 +346,10 @@ export function BookingPage() {
               transition={{ duration: 0.3 }}
               className="flex flex-col"
             >
-              {currentTab === 'inicio' ? (
-                /* Hero Section Split Layout (Inicio) */
-                <div className="relative w-full overflow-hidden bg-[#0a0a0a]">
+              {currentTab === 'inicio' && (
+                <>
+                  {/* Hero Section Split Layout (Inicio) */}
+                  <div className="relative w-full overflow-hidden bg-[#0a0a0a]">
                   {/* Desktop Split Image & Mobile Fallback Image */}
                   <div className="absolute inset-0 md:left-1/3 z-0">
                     <div 
@@ -292,7 +368,7 @@ export function BookingPage() {
 
                   {/* Hero Content */}
                   <div className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-12 pt-10 pb-8 md:pt-20 md:pb-16">
-                    <div className="max-w-2xl text-left">
+                    <div className="max-w-2xl text-center md:text-left mx-auto md:mx-0 flex flex-col items-center md:items-start">
                       <div className={`inline-flex items-center gap-2 mb-6 text-[10px] sm:text-xs font-bold tracking-[0.2em] ${theme.text} uppercase`}>
                         <span className={`p-1 rounded-full border ${theme.border} ${theme.bgLight}`}><svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line></svg></span>
                         ESTILO • CONFIANZA • CALIDAD
@@ -317,10 +393,41 @@ export function BookingPage() {
                           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line></svg>
                         </button>
                       </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (
+
+                  {/* Nuevas Secciones de la Landing Page */}
+                  <ServiceCarousel 
+                    services={services} 
+                    theme={theme} 
+                    onViewAll={() => {
+                      setCurrentTab('servicios');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    onSelectService={(id) => {
+                      const s = services.find((x: Service) => x.id === id);
+                      if (s) {
+                        setSelectedService(s);
+                        setSelectedBarber(null);
+                        setSelectedDate('');
+                        setSelectedTime('');
+                        setStep(2);
+                      }
+                    }}
+                  />
+                  <LiveBarberStatus barbers={barbers} theme={theme} />
+                  <Testimonials theme={theme} />
+                  <Gallery 
+                    theme={theme} 
+                    images={galleryImages} 
+                    onViewAll={() => setCurrentTab('galeria')} 
+                  />
+                  <LocationContact theme={theme} tenant={tenant as any} />
+                </>
+              )}
+
+              {currentTab === 'servicios' && (
                 <>
                   {/* Hero Section Centered (Services View) */}
                   <div className="relative w-full overflow-hidden bg-[#0a0a0a] pt-10 pb-12 md:pt-20 md:pb-16 flex flex-col items-center justify-center text-center px-4">
@@ -399,28 +506,28 @@ export function BookingPage() {
               )}
 
               {/* Contenedor del Catálogo */}
-              <div id="services-section" className="w-full bg-[#0a0a0a] pt-4 pb-20 md:pt-8 md:pb-24">
-                <div className="max-w-7xl mx-auto px-6 lg:px-12">
-                  
-                  <ServiceSelection 
-                    services={services}
-                    selectedServiceId={selectedService?.id}
-                    onSelect={(id) => { 
-                      const s = services.find((x: Service) => x.id === id);
-                      if (s) {
-                        setSelectedService(s); 
-                        // Resetear estado posterior para evitar State Leak
-                        setSelectedBarber(null);
-                        setSelectedDate('');
-                        setSelectedTime('');
-                        handleNext(); 
-                      }
-                    }}
-                    isLoading={isLoadingServices}
-                    theme={theme}
-                  />
+              {currentTab === 'servicios' && (
+                <div id="services-section" className="w-full bg-[#0a0a0a] pt-4 pb-20 md:pt-8 md:pb-24">
+                  <div className="max-w-7xl mx-auto px-6 lg:px-12">
+                    
+                    <ServiceSelection 
+                      services={services}
+                      selectedServiceId={selectedService?.id}
+                      onSelect={(id) => { 
+                        const s = services.find((x: Service) => x.id === id);
+                        if (s) {
+                          setSelectedService(s); 
+                          // Resetear estado posterior para evitar State Leak
+                          setSelectedBarber(null);
+                          setSelectedDate('');
+                          setSelectedTime('');
+                          handleNext(); 
+                        }
+                      }}
+                      isLoading={isLoadingServices}
+                      theme={theme}
+                    />
 
-                  {currentTab === 'servicios' && (
                     <div className="mt-16 bg-[#141414] border border-zinc-800 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8">
                       <div className="flex items-center gap-6">
                         <div className={`w-16 h-16 rounded-full ${theme.bgLight} flex items-center justify-center shrink-0`}>
@@ -436,9 +543,24 @@ export function BookingPage() {
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                       </button>
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {currentTab === 'galeria' && (
+                <PublicGalleryTab 
+                  theme={theme} 
+                  images={galleryImages} 
+                  slug={slug}
+                  onBookClick={() => setCurrentTab('inicio')}
+                />
+              )}
+
+              {currentTab === 'citas' && (
+                <div className="w-full bg-[#0a0a0a] min-h-[50vh] flex flex-col">
+                  <FindBooking />
+                </div>
+              )}
 
               {/* Footer Estructural */}
               <footer className="w-full border-t border-zinc-900 bg-[#0a0a0a] py-8 text-center">
@@ -566,9 +688,9 @@ export function BookingPage() {
                       // Resetear estado de fecha/hora por si el barbero cambió
                       setSelectedDate('');
                       setSelectedTime('');
-                      handleNext();
                     }
                   }}
+                  onContinue={handleNext}
                   isLoading={isLoadingBarbers}
                   theme={theme}
                 />
@@ -580,8 +702,8 @@ export function BookingPage() {
                   onSelect={(d) => { 
                     setSelectedDate(d); 
                     setSelectedTime('');
-                    handleNext(); 
                   }}
+                  onContinue={handleNext}
                   theme={theme}
                 />
               )}
@@ -618,21 +740,13 @@ export function BookingPage() {
 
                 {/* Bottom Navigation Bar */}
                 {step > 1 && step < 5 && (
-                  <div className="fixed md:absolute bottom-0 left-0 md:left-auto right-0 w-full bg-[#0a0a0a]/90 md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-t border-zinc-900 md:border-none p-4 md:p-8 flex items-center justify-between gap-4 z-50">
+                  <div className="fixed md:absolute bottom-0 left-0 md:left-auto right-0 w-full bg-transparent p-4 md:p-8 flex items-center justify-between gap-4 z-10 pointer-events-none">
                     <button 
                       onClick={handleBack} 
-                      className="hidden md:flex items-center gap-2 text-zinc-400 hover:text-white text-sm font-medium transition-colors"
+                      className="hidden md:flex items-center gap-2 text-zinc-400 hover:text-white text-sm font-medium transition-colors pointer-events-auto"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                       Volver
-                    </button>
-                    
-                    <button 
-                      onClick={handleNext}
-                      className={`flex-1 md:flex-none flex items-center justify-center md:justify-between gap-2 text-[#0a0a0a] ${theme.bg} px-8 py-4 rounded-xl font-bold ${theme.bgHover} transition-colors md:ml-auto w-full md:w-auto shadow-lg shadow-black/20`}
-                    >
-                      Continuar
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                     </button>
                   </div>
                 )}

@@ -3,13 +3,13 @@ import { useStaffAdmin } from '../../shared/hooks/useStaffAdmin';
 import { toast } from 'sonner';
 import type { Barber } from '../../types';
 import { BarberFormModal } from './components/BarberFormModal';
-import { Plus, Edit2, Trash2, User, CalendarDays } from 'lucide-react';
+import { Plus, Edit2, Archive, ArchiveRestore, User, CalendarDays } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTenantSettings } from '../../shared/hooks/useTenantSettings';
 import { getThemeClasses } from '../../shared/utils/theme';
 
 export function StaffAdminPage() {
-  const { barbers, isLoading, createBarber, updateBarber, deleteBarber, uploadAvatar } = useStaffAdmin();
+  const { barbers, isLoading, createBarber, updateBarber, deactivateBarber, reactivateBarber, uploadAvatar } = useStaffAdmin();
   const { tenant } = useTenantSettings();
   const themeClasses = getThemeClasses(tenant?.theme_color);
   
@@ -26,17 +26,25 @@ export function StaffAdminPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    toast('¿Eliminar barbero?', {
-      description: 'Esto podría afectar citas históricas asociadas a él.',
+  const handleToggleStatus = async (barber: Barber) => {
+    const isDeactivating = barber.is_active !== false; // por defecto true
+    toast(`¿${isDeactivating ? 'Desactivar' : 'Reactivar'} barbero?`, {
+      description: isDeactivating 
+        ? 'El barbero desaparecerá de la página pública pero mantendrá su historial de citas.'
+        : 'El barbero volverá a estar disponible para recibir reservas.',
       action: {
-        label: 'Eliminar',
+        label: isDeactivating ? 'Desactivar' : 'Reactivar',
         onClick: async () => {
           try {
-            await deleteBarber(id);
-            toast.success("Barbero eliminado exitosamente");
+            if (isDeactivating) {
+              await deactivateBarber(barber.id);
+              toast.success("Barbero desactivado y archivado");
+            } else {
+              await reactivateBarber(barber.id);
+              toast.success("Barbero reactivado");
+            }
           } catch (error) {
-            toast.error("No se pudo eliminar. Puede tener citas asociadas.");
+            toast.error("Ocurrió un error al cambiar el estado.");
           }
         }
       },
@@ -105,17 +113,34 @@ export function StaffAdminPage() {
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
-                  <button 
-                    onClick={() => handleDelete(barber.id)}
-                    className="p-2.5 text-slate-400 hover:text-rose-500 bg-slate-100 dark:bg-zinc-800/50 hover:bg-rose-500/10 rounded-xl transition-colors"
-                    title="Eliminar"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {barber.is_active !== false ? (
+                    <button 
+                      onClick={() => handleToggleStatus(barber)}
+                      className="p-2.5 text-slate-400 hover:text-amber-500 bg-slate-100 dark:bg-zinc-800/50 hover:bg-amber-500/10 rounded-xl transition-colors"
+                      title="Desactivar (Archivar)"
+                    >
+                      <Archive className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => handleToggleStatus(barber)}
+                      className={`p-2.5 text-slate-400 hover:${themeClasses.text} bg-slate-100 dark:bg-zinc-800/50 hover:${themeClasses.bgLight} rounded-xl transition-colors`}
+                      title="Reactivar"
+                    >
+                      <ArchiveRestore className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
               
-              <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1">{barber.name}</h3>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className={`text-xl font-black ${barber.is_active === false ? 'text-slate-400 dark:text-zinc-500' : 'text-slate-900 dark:text-white'}`}>{barber.name}</h3>
+                {barber.is_active === false && (
+                  <span className="text-[10px] font-bold bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                    Inactivo
+                  </span>
+                )}
+              </div>
               <p className="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-6">
                 Añadido el {new Date(barber.created_at).toLocaleDateString('es-ES')}
               </p>
@@ -123,7 +148,8 @@ export function StaffAdminPage() {
               <div className="mt-auto pt-5 border-t border-slate-100 dark:border-zinc-800/50">
                 <Link
                   to={`/admin/staff/${barber.id}/availability`}
-                  className={`w-full flex items-center justify-center gap-2 bg-slate-50 dark:bg-[#0a0a0a] hover:${themeClasses.bgLight} text-slate-700 dark:text-zinc-300 hover:${themeClasses.text} text-sm font-black py-3.5 rounded-xl transition-colors border border-slate-200 dark:border-zinc-800/50 hover:border-transparent`}
+                  className={`w-full flex items-center justify-center gap-2 ${barber.is_active === false ? 'bg-slate-100 dark:bg-zinc-900 text-slate-400 dark:text-zinc-600 cursor-not-allowed' : `bg-slate-50 dark:bg-[#0a0a0a] hover:${themeClasses.bgLight} text-slate-700 dark:text-zinc-300 hover:${themeClasses.text} border border-slate-200 dark:border-zinc-800/50 hover:border-transparent`} text-sm font-black py-3.5 rounded-xl transition-colors`}
+                  onClick={e => barber.is_active === false && e.preventDefault()}
                 >
                   <CalendarDays className="w-4 h-4" />
                   Gestionar Horario

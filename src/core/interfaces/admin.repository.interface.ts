@@ -9,7 +9,7 @@ export interface IAdminRepository {
   /**
    * Actualiza el estado de una cita existente.
    */
-  updateAppointmentStatus(id: string, status: 'pending' | 'confirmed' | 'cancelled'): Promise<void>;
+  updateAppointmentStatus(id: string, status: 'pending' | 'confirmed' | 'cancelled' | 'in_progress' | 'completed'): Promise<void>;
 
   /**
    * Obtiene todos los servicios disponibles (activos o inactivos, si se manejara estado, por ahora todos).
