@@ -331,7 +331,7 @@ export function FindBooking() {
                         }
 
                         // Search for the service to get its image
-                        const service = tenantData?.services?.find(s => s.name === app.service_name);
+                        const service = tenantData?.services?.find((s: any) => s.name === app.service_name);
                         const imageUrl = service?.image_url || tenant?.logo_url || "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&q=80&w=200&h=200";
 
                         return (
