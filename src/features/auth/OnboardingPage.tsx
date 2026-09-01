@@ -8,7 +8,7 @@ export function OnboardingPage() {
   const { session, isLoading } = useAuth();
   const navigate = useNavigate();
   
-  const [shopName, setShopName] = useState('');
+  const [shopName, setShopName] = useState(session?.user?.user_metadata?.shop_name || '');
   const [slug, setSlug] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,7 +86,12 @@ export function OnboardingPage() {
       // Éxito, redirigir al admin
       navigate('/admin');
     } catch (err: any) {
-      setError(err.message || 'Error al crear la barbería. Intenta con otro nombre.');
+      const errorMessage = err.message || '';
+      if (errorMessage.includes('duplicate key') || errorMessage.includes('unique constraint')) {
+        setError('Ese enlace público (slug) ya está en uso por otra barbería. Por favor, modifícalo un poco (ej. agregando tu ciudad o un número).');
+      } else {
+        setError(errorMessage || 'Error al crear la barbería. Intenta con otro nombre.');
+      }
       setIsSubmitting(false);
     }
   };
