@@ -66,10 +66,10 @@ export function ClientPortal() {
     
     setCancelling(true);
     try {
-      const { error } = await supabase
-        .from('appointments')
-        .update({ status: 'cancelled' })
-        .eq('id', id);
+      const { error } = await supabase.rpc('cancel_public_appointment', {
+        p_slug: slug,
+        p_appointment_id: id,
+      });
         
       if (error) throw error;
       setAppointment({ ...appointment, status: 'cancelled' });
@@ -112,7 +112,7 @@ export function ClientPortal() {
   // Calculate minutes difference
   const diffMs = apptTime.getTime() - now.getTime();
   const diffMins = Math.floor(diffMs / 60000);
-  const tooLateToCancel = isCancellable && diffMins < 60 && diffMins > 0; // Menos de 1 hora
+  const tooLateToCancel = isCancellable && diffMins <= 60 && diffMins > 0; // Una hora o menos
   const isPast = diffMins <= 0;
 
   return (
@@ -181,7 +181,7 @@ export function ClientPortal() {
             {!isPast && (
               <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-5 text-center">
                 {tooLateToCancel ? (
-                  <p className="text-rose-400 text-sm font-medium">Ya no puedes cancelar esta cita online porque falta menos de 1 hora.</p>
+                  <p className="text-rose-400 text-sm font-medium">Ya no puedes cancelar esta cita online porque falta 1 hora o menos.</p>
                 ) : (
                   <>
                     <p className="text-zinc-300 text-sm mb-4">Si no podrás asistir, por favor cancela tu cita para liberar el espacio a otro cliente.</p>
