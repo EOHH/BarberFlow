@@ -50,8 +50,7 @@ export function DashboardPage() {
     const pendingAppointments: typeof appointments = [];
 
     appointments.forEach(app => {
-      const service = services.find(s => s.id === app.service_id);
-      const price = service ? Number(service.price) : 0;
+      const price = Number(app.price_snapshot);
 
       if (app.status === 'completed') {
         weekRevenue += price;
@@ -143,7 +142,7 @@ export function DashboardPage() {
       currentMonthName,
       prevMonthName
     };
-  }, [appointments, services, todayStr]);
+  }, [appointments, todayStr]);
 
   const isLoading = isLoadingMetrics || isLoadingServices || isLoadingBarbers;
 
@@ -313,7 +312,6 @@ export function DashboardPage() {
                   <div className="divide-y divide-slate-100 dark:divide-zinc-800/50">
                     {metrics.recentCompleted.map((app) => {
                       const barber = barbers.find(b => b.id === app.barber_id);
-                      const service = services.find(s => s.id === app.service_id);
                       return (
                         <div key={app.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-zinc-900/30 transition-colors">
                           <div className="flex items-center gap-3">
@@ -331,13 +329,13 @@ export function DashboardPage() {
                             </div>
                             <div>
                               <h4 className="font-bold text-sm text-slate-900 dark:text-white">{app.client_name}</h4>
-                              <p className={`text-[11px] font-semibold ${themeClasses.text}`}>{service?.name}</p>
+                              <p className={`text-[11px] font-semibold ${themeClasses.text}`}>{app.service_name_snapshot}</p>
                               <p className="text-[10px] text-slate-500 dark:text-zinc-500">Atendido por {barber?.name}</p>
                             </div>
                           </div>
                           <div className="flex flex-col items-end gap-1">
                             <span className="font-black text-sm text-emerald-600 dark:text-emerald-400">
-                              S/ {service?.price.toFixed(2) || '0.00'}
+                              S/ {Number(app.price_snapshot).toFixed(2)}
                             </span>
                             <div className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-zinc-400 font-medium">
                               <CalendarIcon className="w-3 h-3" />
@@ -370,7 +368,6 @@ export function DashboardPage() {
                   <div className="divide-y divide-slate-100 dark:divide-zinc-800/50">
                     {metrics.upcoming.map((app) => {
                       const barber = barbers.find(b => b.id === app.barber_id);
-                      const service = services.find(s => s.id === app.service_id);
                       return (
                         <div key={app.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-zinc-900/30 transition-colors">
                           <div className="flex items-center gap-3">
@@ -385,7 +382,7 @@ export function DashboardPage() {
                             </div>
                             <div>
                               <h4 className="font-bold text-sm text-slate-900 dark:text-white">{app.client_name}</h4>
-                              <p className={`text-[11px] font-semibold ${themeClasses.text}`}>{service?.name}</p>
+                              <p className={`text-[11px] font-semibold ${themeClasses.text}`}>{app.service_name_snapshot}</p>
                               <p className="text-[10px] text-slate-500 dark:text-zinc-500">{barber?.name}</p>
                             </div>
                           </div>

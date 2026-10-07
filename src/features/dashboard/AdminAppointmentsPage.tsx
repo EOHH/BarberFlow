@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAdminAppointments } from '../../shared/hooks/useAdminAppointments';
-import { useServicesAdmin } from '../../shared/hooks/useServicesAdmin';
 import { useStaffAdmin } from '../../shared/hooks/useStaffAdmin';
 import { useTenantSettings } from '../../shared/hooks/useTenantSettings';
 import { Calendar as CalendarIcon, Phone, User, CheckCircle2, XCircle, Clock4, ChevronLeft, ChevronRight, MessageCircle, X } from 'lucide-react';
@@ -38,7 +37,6 @@ export function AdminAppointmentsPage() {
   const dateStr = formatInTimeZone(dateObj, TIME_ZONE, 'yyyy-MM-dd');
 
   const { appointments, isLoading: isLoadingAppointments, updateStatus } = useAdminAppointments(dateStr);
-  const { services, isLoading: isLoadingServices } = useServicesAdmin();
   const { barbers, isLoading: isLoadingBarbers } = useStaffAdmin();
 
   const { tenant } = useTenantSettings();
@@ -69,7 +67,7 @@ export function AdminAppointmentsPage() {
     }
   };
 
-  const isLoading = isLoadingAppointments || isLoadingServices || isLoadingBarbers;
+  const isLoading = isLoadingAppointments || isLoadingBarbers;
   const displayDate = formatInTimeZone(dateObj, TIME_ZONE, "EEEE, d 'de' MMMM, yyyy", { locale: es });
 
   // Current Time State for Indicator
@@ -244,8 +242,7 @@ export function AdminAppointmentsPage() {
 
                       {/* Appointments */}
                       {barberAppts.map(app => {
-                        const service = services.find(s => s.id === app.service_id);
-                        const duration = service?.duration_minutes || 30;
+                        const duration = app.duration_minutes_snapshot;
                         const mins = timeToMinutes(app.time);
                         const top = (mins - (START_HOUR * 60)) * PIXELS_PER_MINUTE;
                         const height = duration * PIXELS_PER_MINUTE;
@@ -286,7 +283,7 @@ export function AdminAppointmentsPage() {
                             </span>
                             {height > 40 && (
                               <span className="text-[10px] font-medium opacity-80 truncate mt-0.5 leading-none">
-                                {service?.name || 'Servicio'}
+                                {app.service_name_snapshot}
                               </span>
                             )}
                           </div>
@@ -351,7 +348,6 @@ export function AdminAppointmentsPage() {
                 {appointments
                   .sort((a, b) => a.time.localeCompare(b.time))
                   .map(app => {
-                    const service = services.find(s => s.id === app.service_id);
                     const barber = barbers.find(b => b.id === app.barber_id);
                     
                     const isCancelled = app.status === 'cancelled';
@@ -387,7 +383,7 @@ export function AdminAppointmentsPage() {
                             <h4 className="font-bold text-base text-slate-900 dark:text-white truncate pr-2">{app.client_name}</h4>
                             {(isConfirmed || isCompleted) && <CheckCircle2 className={`w-4 h-4 shrink-0 ${isCompleted ? 'text-indigo-500' : 'text-emerald-500'}`} />}
                           </div>
-                          <p className="text-sm text-slate-500 dark:text-zinc-400 truncate">{service?.name || 'Servicio'}</p>
+                          <p className="text-sm text-slate-500 dark:text-zinc-400 truncate">{app.service_name_snapshot}</p>
                           <div className="flex items-center justify-between mt-3">
                             <div className="flex items-center gap-2">
                               {barber?.avatar_url ? (
@@ -397,7 +393,7 @@ export function AdminAppointmentsPage() {
                               )}
                               <span className="text-xs font-bold text-slate-600 dark:text-zinc-400 truncate max-w-[100px]">{barber?.name || 'Sin asignar'}</span>
                             </div>
-                            <span className={`text-xs font-black ${themeClasses.text}`}>S/ {service?.price?.toFixed(2) || '0.00'}</span>
+                            <span className={`text-xs font-black ${themeClasses.text}`}>S/ {Number(app.price_snapshot).toFixed(2)}</span>
                           </div>
                         </div>
                       </div>
@@ -421,8 +417,7 @@ export function AdminAppointmentsPage() {
                   const isCovered = appointments.some(a => {
                     if (a.barber_id !== selectedBarberId) return false;
                     const aStart = timeToMinutes(a.time);
-                    const svc = services.find(s => s.id === a.service_id);
-                    const aEnd = aStart + (svc?.duration_minutes || 30);
+                    const aEnd = aStart + a.duration_minutes_snapshot;
                     return slotMins > aStart && slotMins < aEnd;
                   });
 
@@ -431,7 +426,6 @@ export function AdminAppointmentsPage() {
                   const formattedTime = formatTimeAMPM(timeStr).split(' ')[0];
 
                   if (appt) {
-                    const service = services.find(s => s.id === appt.service_id);
                     const isCancelled = appt.status === 'cancelled';
                     const isCompleted = appt.status === 'completed';
                     const isConfirmed = appt.status === 'confirmed';
@@ -458,7 +452,7 @@ export function AdminAppointmentsPage() {
                         </div>
                         <div className="flex-1 flex flex-col items-center justify-center text-center border-l border-white/20 pl-4">
                           <span className="font-bold text-base leading-tight truncate w-full">{appt.client_name}</span>
-                          <span className="text-sm opacity-90 truncate w-full">{service?.name || 'Servicio'}</span>
+                          <span className="text-sm opacity-90 truncate w-full">{appt.service_name_snapshot}</span>
                           <div className="text-xs font-bold mt-1 flex items-center justify-center gap-1">
                             {isCompleted ? '✓ Completado' : isConfirmed ? '⏳ Confirmada' : isInProgress ? '🔄 En atención' : isCancelled ? '✕ Cancelada' : isExpired ? 'Expirada' : 'Pendiente de confirmación'}
                           </div>
@@ -576,22 +570,17 @@ export function AdminAppointmentsPage() {
               </div>
 
               {/* Service Info */}
-              {(() => {
-                const svc = services.find(s => s.id === selectedAppt.service_id);
-                if (!svc) return null;
-                return (
-                  <div className={`${themeClasses.bgLight} rounded-2xl p-5 border border-black/5 dark:border-white/5 flex justify-between items-center`}>
-                    <div>
-                      <p className={`text-xs ${themeClasses.text} font-bold uppercase tracking-wider mb-1`}>Servicio</p>
-                      <p className="font-bold text-slate-900 dark:text-white">{svc.name}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className={`text-xs ${themeClasses.text} font-bold uppercase tracking-wider mb-1`}>Precio</p>
-                      <p className={`font-black text-lg ${themeClasses.text}`}>S/ {svc.price.toFixed(2)}</p>
-                    </div>
-                  </div>
-                );
-              })()}
+              <div className={`${themeClasses.bgLight} rounded-2xl p-5 border border-black/5 dark:border-white/5 flex justify-between items-center`}>
+                <div>
+                  <p className={`text-xs ${themeClasses.text} font-bold uppercase tracking-wider mb-1`}>Servicio</p>
+                  <p className="font-bold text-slate-900 dark:text-white">{selectedAppt.service_name_snapshot}</p>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">{selectedAppt.duration_minutes_snapshot} min</p>
+                </div>
+                <div className="text-right">
+                  <p className={`text-xs ${themeClasses.text} font-bold uppercase tracking-wider mb-1`}>Precio</p>
+                  <p className={`font-black text-lg ${themeClasses.text}`}>S/ {Number(selectedAppt.price_snapshot).toFixed(2)}</p>
+                </div>
+              </div>
 
               {/* CRM Actions */}
               <div className="space-y-3 pt-4">
@@ -601,7 +590,7 @@ export function AdminAppointmentsPage() {
                   href={getWhatsAppUrl(
                     selectedAppt.phone, 
                     selectedAppt.client_name, 
-                    services.find(s => s.id === selectedAppt.service_id)?.name || 'su servicio',
+                    selectedAppt.service_name_snapshot,
                     selectedAppt.time
                   )}
                   target="_blank"

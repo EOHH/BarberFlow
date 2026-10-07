@@ -1,14 +1,13 @@
-import type { Appointment, Service } from '../../../types';
+import type { Appointment } from '../../../types';
 import { EXPIRED_STATUS_BADGE_CLASS } from '../../../shared/utils/appointmentStatusStyles';
 
 interface Props {
   appointments: Appointment[];
-  services: Service[];
   onUpdateStatus: (id: string, status: Appointment['status']) => void;
   isLoading: boolean;
 }
 
-export function AppointmentsTable({ appointments, services, onUpdateStatus, isLoading }: Props) {
+export function AppointmentsTable({ appointments, onUpdateStatus, isLoading }: Props) {
   if (isLoading) {
     return <div className="h-64 flex items-center justify-center text-muted-foreground">Cargando citas...</div>;
   }
@@ -20,8 +19,6 @@ export function AppointmentsTable({ appointments, services, onUpdateStatus, isLo
       </div>
     );
   }
-
-  const getServiceName = (id: string) => services.find(s => s.id === id)?.name || 'Servicio Desconocido';
 
   const formatTime = (timeStr: string) => {
     const [hours, minutes] = timeStr.split(':');
@@ -66,7 +63,7 @@ export function AppointmentsTable({ appointments, services, onUpdateStatus, isLo
               <td className="px-6 py-4 font-semibold whitespace-nowrap">{formatTime(app.time)}</td>
               <td className="px-6 py-4 whitespace-nowrap">{app.client_name}</td>
               <td className="px-6 py-4 whitespace-nowrap">{app.phone}</td>
-              <td className="px-6 py-4 whitespace-nowrap">{getServiceName(app.service_id)}</td>
+              <td className="px-6 py-4 whitespace-nowrap">{app.service_name_snapshot}</td>
               <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(app.status)}</td>
               <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
                 {app.status === 'pending' && (

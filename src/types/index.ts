@@ -68,6 +68,9 @@ export interface Appointment {
   date: string;
   time: string;
   service_id: string;
+  service_name_snapshot: string;
+  price_snapshot: number;
+  duration_minutes_snapshot: number;
   status: 'pending' | 'confirmed' | 'cancelled' | 'in_progress' | 'completed' | 'expired';
   created_at: string;
   

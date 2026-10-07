@@ -14,7 +14,7 @@ export class ClientsRepository {
     // 2. Obtener todas las citas
     const { data: appointmentsData, error: appointmentsError } = await supabase
       .from('appointments')
-      .select('client_id, client_name, phone, status, created_at, service:services(price)');
+      .select('client_id, client_name, phone, status, created_at, price_snapshot');
 
     if (appointmentsError) throw new Error(`Error al obtener citas: ${appointmentsError.message}`);
 
@@ -51,11 +51,8 @@ export class ClientsRepository {
       // Sumar estadísticas si la cita fue completada
       if (appt.status === 'completed') {
         const currentClient = allClientsMap.get(uniqueKey)!;
-        const serviceObj = Array.isArray(appt.service) ? appt.service[0] : appt.service;
-        const price = (serviceObj as any)?.price || 0;
-        
         currentClient.total_visits = (currentClient.total_visits || 0) + 1;
-        currentClient.ltv = (currentClient.ltv || 0) + price;
+        currentClient.ltv = (currentClient.ltv || 0) + Number(appt.price_snapshot);
       }
     });
 

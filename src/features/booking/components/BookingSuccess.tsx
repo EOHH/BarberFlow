@@ -25,14 +25,14 @@ export function BookingSuccess({ appointment, service, onReset, theme, tenant }:
     
     // Calculate end time
     const startMins = parseInt(hour) * 60 + parseInt(min);
-    const duration = service.duration_minutes || 30;
+    const duration = appointment.duration_minutes_snapshot;
     const endMins = startMins + duration;
     const endHour = Math.floor(endMins / 60).toString().padStart(2, '0');
     const endMin = (endMins % 60).toString().padStart(2, '0');
     const endStr = `${year}${month}${day}T${endHour}${endMin}00`;
 
-    const title = encodeURIComponent(`Cita: ${service.name} en ${tenant?.name || 'Barbería'}`);
-    const details = encodeURIComponent(`Tu solicitud de cita para ${service.name} está pendiente de confirmación por la barbería.`);
+    const title = encodeURIComponent(`Cita: ${appointment.service_name_snapshot} en ${tenant?.name || 'Barbería'}`);
+    const details = encodeURIComponent(`Tu solicitud de cita para ${appointment.service_name_snapshot} está pendiente de confirmación por la barbería.`);
     
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startStr}/${endStr}&details=${details}`;
   };
@@ -51,7 +51,7 @@ export function BookingSuccess({ appointment, service, onReset, theme, tenant }:
             <div className={`w-12 h-12 rounded-full ${theme.bgLight} flex items-center justify-center shrink-0`}>
               <Scissors className={`w-6 h-6 ${theme.text}`} />
             </div>
-            <span className="font-bold text-[16px] text-white">{service.name}</span>
+            <span className="font-bold text-[16px] text-white">{appointment.service_name_snapshot}</span>
           </div>
           <div className="flex items-center gap-4">
             <div className={`w-12 h-12 rounded-full ${theme.bgLight} flex items-center justify-center shrink-0`}>
