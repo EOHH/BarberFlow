@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../infrastructure/supabase/client';
 import { Calendar, Clock, User, Scissors, CheckCircle2, XCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { EXPIRED_STATUS_BADGE_CLASS } from '../../shared/utils/appointmentStatusStyles';
 
 const TIME_ZONE = 'America/Lima';
 
@@ -137,7 +138,9 @@ export function ClientPortal() {
             {appointment.status === 'completed' && <span className="bg-indigo-500/10 text-indigo-500 px-3 py-1 rounded-full text-xs font-bold uppercase border border-indigo-500/20 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Completado</span>}
             {appointment.status === 'in_progress' && <span className="bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full text-xs font-bold uppercase border border-amber-500/20 animate-pulse flex items-center gap-1"><Clock className="w-3 h-3"/> En Atención</span>}
             {appointment.status === 'cancelled' && <span className="bg-rose-500/10 text-rose-500 px-3 py-1 rounded-full text-xs font-bold uppercase border border-rose-500/20 flex items-center gap-1"><XCircle className="w-3 h-3"/> Cancelado</span>}
-            {(appointment.status === 'pending' || appointment.status === 'confirmed') && <span className="bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full text-xs font-bold uppercase border border-emerald-500/20 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Vigente</span>}
+            {appointment.status === 'expired' && <span className={`${EXPIRED_STATUS_BADGE_CLASS} px-3 py-1 rounded-full text-xs font-bold uppercase flex items-center gap-1`}><Clock className="w-3 h-3"/> Expirada</span>}
+            {appointment.status === 'pending' && <span className="bg-yellow-500/10 text-yellow-500 px-3 py-1 rounded-full text-xs font-bold uppercase border border-yellow-500/20 flex items-center gap-1"><Clock className="w-3 h-3"/> Pendiente de confirmación</span>}
+            {appointment.status === 'confirmed' && <span className="bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full text-xs font-bold uppercase border border-emerald-500/20 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Confirmada</span>}
           </div>
 
           <div className="space-y-6 mt-8">

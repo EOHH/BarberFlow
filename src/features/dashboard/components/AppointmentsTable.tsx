@@ -1,9 +1,10 @@
 import type { Appointment, Service } from '../../../types';
+import { EXPIRED_STATUS_BADGE_CLASS } from '../../../shared/utils/appointmentStatusStyles';
 
 interface Props {
   appointments: Appointment[];
   services: Service[];
-  onUpdateStatus: (id: string, status: 'pending' | 'confirmed' | 'cancelled' | 'in_progress' | 'completed') => void;
+  onUpdateStatus: (id: string, status: Appointment['status']) => void;
   isLoading: boolean;
 }
 
@@ -37,8 +38,12 @@ export function AppointmentsTable({ appointments, services, onUpdateStatus, isLo
         return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Completada</span>;
       case 'cancelled':
         return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Cancelada</span>;
+      case 'expired':
+        return <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${EXPIRED_STATUS_BADGE_CLASS}`}>Expirada</span>;
+      case 'pending':
+        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400">Pendiente de confirmaciÃ³n</span>;
       default:
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400">Pendiente</span>;
+        return null;
     }
   };
 
@@ -72,7 +77,7 @@ export function AppointmentsTable({ appointments, services, onUpdateStatus, isLo
                     Confirmar
                   </button>
                 )}
-                {app.status !== 'cancelled' && (
+                {(app.status === 'pending' || app.status === 'confirmed') && (
                   <button 
                     onClick={() => onUpdateStatus(app.id, 'cancelled')}
                     className="text-xs font-medium text-destructive hover:underline"

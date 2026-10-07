@@ -49,7 +49,7 @@ export class ClientsRepository {
       }
 
       // Sumar estadísticas si la cita fue completada
-      if (appt.status === 'completed' || appt.status === 'confirmed') {
+      if (appt.status === 'completed') {
         const currentClient = allClientsMap.get(uniqueKey)!;
         const serviceObj = Array.isArray(appt.service) ? appt.service[0] : appt.service;
         const price = (serviceObj as any)?.price || 0;

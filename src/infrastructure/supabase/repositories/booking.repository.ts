@@ -1,7 +1,6 @@
 import { supabase } from '../client';
 import type { IBookingRepository } from '../../../core/interfaces/booking.repository.interface';
 import type { Appointment, BookingFormInput, TimeSlot } from '../../../types';
-import { toast } from 'sonner';
 
 export class BookingRepository implements IBookingRepository {
   async getAvailableSlots(slug: string, serviceId: string, barberId: string, date: string): Promise<TimeSlot[]> {
@@ -54,11 +53,6 @@ export class BookingRepository implements IBookingRepository {
       throw new Error(`Error creating appointment: ${error.message}`);
     }
     
-    // MOCK SERVERLESS
-    setTimeout(() => {
-        toast.success(`MOCK SERVERLESS: Correo de confirmación encolado para ${phone}`);
-    }, 1500); // Simulando delay de Webhook -> Edge Function
-
     return {
       id: data?.id,
       date: bookingData.date,

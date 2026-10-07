@@ -3,13 +3,17 @@ import { useAdminAppointments } from '../../shared/hooks/useAdminAppointments';
 import { useServicesAdmin } from '../../shared/hooks/useServicesAdmin';
 import { useStaffAdmin } from '../../shared/hooks/useStaffAdmin';
 import { useTenantSettings } from '../../shared/hooks/useTenantSettings';
-import { useOptimisticWorkflow } from '../../shared/hooks/useOptimisticWorkflow';
 import { Calendar as CalendarIcon, Phone, User, CheckCircle2, XCircle, Clock4, ChevronLeft, ChevronRight, MessageCircle, X } from 'lucide-react';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { addDays, subDays, format, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Appointment } from '../../types';
 import { getThemeClasses } from '../../shared/utils/theme';
+import {
+  EXPIRED_STATUS_ACCENT_CLASS,
+  EXPIRED_STATUS_BADGE_CLASS,
+  EXPIRED_STATUS_SURFACE_CLASS,
+} from '../../shared/utils/appointmentStatusStyles';
 
 const TIME_ZONE = 'America/Lima';
 const START_HOUR = 8; // 08:00 AM
@@ -43,8 +47,6 @@ export function AdminAppointmentsPage() {
   const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
   const [selectedBarberId, setSelectedBarberId] = useState<string | null>(null);
 
-  useOptimisticWorkflow(appointments, services, dateStr, updateStatus);
-
   useEffect(() => {
     if (selectedAppt) {
       const updatedAppt = appointments.find(a => a.id === selectedAppt.id);
@@ -56,7 +58,7 @@ export function AdminAppointmentsPage() {
   const handlePrevDay = () => setDateObj(prev => subDays(prev, 1));
   const handleNextDay = () => setDateObj(prev => addDays(prev, 1));
 
-  const handleUpdateStatus = async (id: string, status: 'pending' | 'confirmed' | 'cancelled' | 'in_progress' | 'completed') => {
+  const handleUpdateStatus = async (id: string, status: Appointment['status']) => {
     try {
       await updateStatus({ id, status });
       if (selectedAppt && selectedAppt.id === id) {
@@ -252,6 +254,7 @@ export function AdminAppointmentsPage() {
                         const isCompleted = app.status === 'completed';
                         const isConfirmed = app.status === 'confirmed';
                         const isInProgress = app.status === 'in_progress';
+                        const isExpired = app.status === 'expired';
 
                         return (
                           <div 
@@ -266,6 +269,8 @@ export function AdminAppointmentsPage() {
                                 ? 'bg-amber-500/10 border-amber-500/20 text-amber-800 dark:text-amber-300 animate-pulse'
                                 : isConfirmed
                                 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-800 dark:text-emerald-300'
+                                : isExpired
+                                ? EXPIRED_STATUS_SURFACE_CLASS
                                 : `${themeClasses.bgLight} border-black/5 dark:border-white/5 ${themeClasses.text}`
                             }`}
                             style={{ top, height }}
@@ -353,12 +358,14 @@ export function AdminAppointmentsPage() {
                     const isCompleted = app.status === 'completed';
                     const isConfirmed = app.status === 'confirmed';
                     const isInProgress = app.status === 'in_progress';
+                    const isExpired = app.status === 'expired';
 
                     let statusColor = 'bg-slate-500';
                     if (isCancelled) statusColor = 'bg-rose-500';
                     if (isCompleted) statusColor = 'bg-indigo-500';
                     if (isInProgress) statusColor = 'bg-amber-500 animate-pulse';
                     if (isConfirmed) statusColor = 'bg-emerald-500';
+                    if (isExpired) statusColor = EXPIRED_STATUS_ACCENT_CLASS;
 
                     return (
                       <div 
@@ -429,6 +436,7 @@ export function AdminAppointmentsPage() {
                     const isCompleted = appt.status === 'completed';
                     const isConfirmed = appt.status === 'confirmed';
                     const isInProgress = appt.status === 'in_progress';
+                    const isExpired = appt.status === 'expired';
 
                     // Colores sólidos según el screenshot del cliente
                     let bgClass = 'bg-slate-200 dark:bg-zinc-800 text-slate-800 dark:text-slate-200';
@@ -437,6 +445,7 @@ export function AdminAppointmentsPage() {
                     if (isInProgress) bgClass = 'bg-amber-500 text-white animate-pulse';
                     if (isConfirmed) bgClass = 'bg-[#6b75c8] text-white'; // Morado/Azul tipo pendiente en su foto
                     if (appt.status === 'pending') bgClass = 'bg-slate-400 text-white'; // Gris oscuro para pendiente sin confirmar
+                    if (isExpired) bgClass = EXPIRED_STATUS_SURFACE_CLASS;
 
                     return (
                       <div 
@@ -451,7 +460,7 @@ export function AdminAppointmentsPage() {
                           <span className="font-bold text-base leading-tight truncate w-full">{appt.client_name}</span>
                           <span className="text-sm opacity-90 truncate w-full">{service?.name || 'Servicio'}</span>
                           <div className="text-xs font-bold mt-1 flex items-center justify-center gap-1">
-                            {isCompleted ? '✓ Completado' : isConfirmed ? '⏳ Confirmado' : isInProgress ? '🔄 En atención' : isCancelled ? '✕ Cancelado' : 'Pendiente'}
+                            {isCompleted ? '✓ Completado' : isConfirmed ? '⏳ Confirmada' : isInProgress ? '🔄 En atención' : isCancelled ? '✕ Cancelada' : isExpired ? 'Expirada' : 'Pendiente de confirmación'}
                           </div>
                         </div>
                       </div>
@@ -553,13 +562,15 @@ export function AdminAppointmentsPage() {
                     selectedAppt.status === 'completed' ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' :
                     selectedAppt.status === 'in_progress' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse' :
                     selectedAppt.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 
-                    selectedAppt.status === 'cancelled' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' : 
+                    selectedAppt.status === 'cancelled' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
+                    selectedAppt.status === 'expired' ? EXPIRED_STATUS_BADGE_CLASS :
                     'bg-slate-500/10 text-slate-600 border-slate-500/20'
                   }`}>
                     {selectedAppt.status === 'completed' ? 'Completado' :
                      selectedAppt.status === 'in_progress' ? 'En atención' :
-                     selectedAppt.status === 'pending' ? 'Pendiente' : 
-                     selectedAppt.status === 'confirmed' ? 'Confirmado' : 'Cancelado'}
+                     selectedAppt.status === 'pending' ? 'Pendiente de confirmación' :
+                     selectedAppt.status === 'confirmed' ? 'Confirmada' :
+                     selectedAppt.status === 'expired' ? 'Expirada' : 'Cancelada'}
                   </span>
                 </div>
               </div>
@@ -608,16 +619,10 @@ export function AdminAppointmentsPage() {
               {(() => {
                 const isCancelled = selectedAppt.status === 'cancelled';
                 const isCompleted = selectedAppt.status === 'completed';
+                const isExpired = selectedAppt.status === 'expired';
                 
-                if (isCancelled || isCompleted) {
-                  return (
-                    <button
-                      onClick={() => handleUpdateStatus(selectedAppt.id, 'pending')}
-                      className="col-span-2 flex items-center justify-center gap-2 bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-300 dark:hover:bg-zinc-700 px-4 py-3 rounded-xl font-bold transition-colors"
-                    >
-                      Restaurar Cita
-                    </button>
-                  );
+                if (isCancelled || isCompleted || isExpired) {
+                  return null;
                 }
 
                 return (
@@ -626,10 +631,17 @@ export function AdminAppointmentsPage() {
                       onClick={() => handleUpdateStatus(selectedAppt.id, 'cancelled')}
                       className="flex items-center justify-center gap-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white px-4 py-3 rounded-xl font-bold transition-colors"
                     >
-                      <XCircle className="w-4 h-4" /> No Asistió
+                      <XCircle className="w-4 h-4" /> Cancelar cita
                     </button>
                     
-                    {selectedAppt.status === 'pending' || selectedAppt.status === 'confirmed' ? (
+                    {selectedAppt.status === 'pending' ? (
+                      <button
+                        onClick={() => handleUpdateStatus(selectedAppt.id, 'confirmed')}
+                        className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-colors shadow-md bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-500/20"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> Confirmar
+                      </button>
+                    ) : selectedAppt.status === 'confirmed' ? (
                       <button
                         onClick={() => handleUpdateStatus(selectedAppt.id, 'in_progress')}
                         className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-colors shadow-md bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/20`}

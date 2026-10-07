@@ -6,6 +6,7 @@ import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { usePublicTenant } from '../../shared/hooks/usePublicTenant';
 import { getThemeClasses } from '../../shared/utils/theme';
 import { motion, AnimatePresence } from 'framer-motion';
+import { EXPIRED_STATUS_BADGE_CLASS } from '../../shared/utils/appointmentStatusStyles';
 
 const TIME_ZONE = 'America/Lima';
 
@@ -309,6 +310,7 @@ export function FindBooking() {
                         const isCancelled = app.status === 'cancelled';
                         const isCompleted = app.status === 'completed';
                         const isInProgress = app.status === 'in_progress';
+                        const isExpired = app.status === 'expired';
                         
                         let statusColor = 'bg-zinc-800 text-zinc-400';
                         let statusText = 'Desconocido';
@@ -318,7 +320,7 @@ export function FindBooking() {
                           statusText = 'Confirmada';
                         } else if (isPending) {
                           statusColor = 'bg-yellow-500/20 text-yellow-400';
-                          statusText = 'Pendiente';
+                          statusText = 'Pendiente de confirmación';
                         } else if (isInProgress) {
                           statusColor = 'bg-amber-500/20 text-amber-500 animate-pulse';
                           statusText = 'En Atención';
@@ -328,6 +330,9 @@ export function FindBooking() {
                         } else if (isCompleted) {
                           statusColor = 'bg-blue-500/20 text-blue-400';
                           statusText = 'Completada';
+                        } else if (isExpired) {
+                          statusColor = EXPIRED_STATUS_BADGE_CLASS;
+                          statusText = 'Expirada';
                         }
 
                         // Search for the service to get its image

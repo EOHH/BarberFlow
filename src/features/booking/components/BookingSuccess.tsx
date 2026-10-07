@@ -32,7 +32,7 @@ export function BookingSuccess({ appointment, service, onReset, theme, tenant }:
     const endStr = `${year}${month}${day}T${endHour}${endMin}00`;
 
     const title = encodeURIComponent(`Cita: ${service.name} en ${tenant?.name || 'Barbería'}`);
-    const details = encodeURIComponent(`Tu cita para ${service.name} está confirmada. \n\n¡Te esperamos!`);
+    const details = encodeURIComponent(`Tu solicitud de cita para ${service.name} está pendiente de confirmación por la barbería.`);
     
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startStr}/${endStr}&details=${details}`;
   };
@@ -42,8 +42,8 @@ export function BookingSuccess({ appointment, service, onReset, theme, tenant }:
       <div className={`w-24 h-24 rounded-full flex items-center justify-center ${theme.bgLight} ${theme.text} mb-6`}>
         <CheckCircle2 className="w-12 h-12" />
       </div>
-      <h2 className="text-3xl font-extrabold mb-3 text-white">¡Confirmada!</h2>
-      <p className="text-zinc-400 mb-8 text-[15px]">Tu cita ha sido registrada exitosamente. Te esperamos.</p>
+      <h2 className="text-3xl font-extrabold mb-3 text-white">¡Solicitud registrada!</h2>
+      <p className="text-zinc-400 mb-8 text-[15px]">Tu cita está pendiente de confirmación por la barbería.</p>
 
       <div className="w-full bg-[#0a0a0a] rounded-2xl p-6 mb-8 flex items-center justify-between gap-6 text-left border border-zinc-800 shadow-inner relative overflow-hidden">
         <div className="space-y-5 relative z-10 flex-1">
