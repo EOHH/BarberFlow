@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tenantRepository } from '../../infrastructure/supabase/repositories/tenant.repository';
-import type { Tenant } from '../../types';
+import type { BookingConfirmationMode, Tenant } from '../../types';
 import { toast } from 'sonner';
 
 export function useTenantSettings() {
@@ -10,6 +10,11 @@ export function useTenantSettings() {
   const { data: tenant, isLoading, isError } = useQuery({
     queryKey,
     queryFn: () => tenantRepository.getCurrentTenant(),
+  });
+
+  const { data: currentUserRole, isLoading: isLoadingRole } = useQuery({
+    queryKey: ['tenant-user-role'],
+    queryFn: () => tenantRepository.getCurrentUserRole(),
   });
 
   const updateTenantMutation = useMutation({
@@ -33,13 +38,35 @@ export function useTenantSettings() {
     }
   });
 
+  const updateBookingConfirmationModeMutation = useMutation({
+    mutationFn: (mode: BookingConfirmationMode) =>
+      tenantRepository.updateBookingConfirmationMode(mode),
+    onSuccess: (bookingConfirmationMode) => {
+      queryClient.setQueryData<Tenant>(queryKey, (currentTenant) => {
+        if (!currentTenant) return currentTenant;
+        return {
+          ...currentTenant,
+          booking_confirmation_mode: bookingConfirmationMode,
+        };
+      });
+      toast.success('Modalidad de reservas actualizada');
+    },
+    onError: (error) => {
+      toast.error('No se pudo actualizar la modalidad: ' + error.message);
+    },
+  });
+
   return {
     tenant,
     isLoading,
     isError,
+    currentUserRole,
+    isLoadingRole,
     updateTenant: updateTenantMutation.mutateAsync,
     uploadLogo: uploadLogoMutation.mutateAsync,
+    updateBookingConfirmationMode: updateBookingConfirmationModeMutation.mutateAsync,
     isUpdating: updateTenantMutation.isPending,
     isUploading: uploadLogoMutation.isPending,
+    isUpdatingBookingConfirmationMode: updateBookingConfirmationModeMutation.isPending,
   };
 }

@@ -1,5 +1,5 @@
 import { supabase } from '../client';
-import type { Tenant } from '../../../types';
+import type { BookingConfirmationMode, Tenant, TenantUserRole } from '../../../types';
 
 export class TenantRepository {
   async getCurrentTenant(): Promise<Tenant> {
@@ -22,6 +22,25 @@ export class TenantRepository {
 
     if (error) throw new Error(`Error updating tenant: ${error.message}`);
     return data as Tenant;
+  }
+
+  async getCurrentUserRole(): Promise<TenantUserRole> {
+    const { data, error } = await supabase
+      .from('tenant_users')
+      .select('role')
+      .single();
+
+    if (error) throw new Error(`Error fetching tenant role: ${error.message}`);
+    return data.role as TenantUserRole;
+  }
+
+  async updateBookingConfirmationMode(mode: BookingConfirmationMode): Promise<BookingConfirmationMode> {
+    const { data, error } = await supabase.rpc('update_booking_confirmation_mode', {
+      p_mode: mode,
+    });
+
+    if (error) throw new Error(`Error updating booking confirmation mode: ${error.message}`);
+    return data as BookingConfirmationMode;
   }
 
   async uploadLogo(file: File): Promise<string> {

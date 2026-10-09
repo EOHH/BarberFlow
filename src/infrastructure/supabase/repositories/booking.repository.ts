@@ -64,7 +64,7 @@ export class BookingRepository implements IBookingRepository {
       service_name_snapshot: data?.service_name,
       price_snapshot: Number(data?.price),
       duration_minutes_snapshot: Number(data?.duration_minutes),
-      status: 'pending'
+      status: data?.status ?? 'pending'
     } as Appointment;
   }
 }

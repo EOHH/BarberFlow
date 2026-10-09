@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTenantSettings } from '../../shared/hooks/useTenantSettings';
 import imageCompression from 'browser-image-compression';
-import { Image as ImageIcon, Upload, Save, Loader2, Palette, CheckCircle2, Store, Bell, Mail, MessageCircle, Star, Share2 } from 'lucide-react';
+import { Image as ImageIcon, Upload, Save, Loader2, Palette, CheckCircle2, Store, Bell, Mail, MessageCircle, Star, Share2, CalendarCheck2, Zap, Clock3, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import type { BookingConfirmationMode } from '../../types';
 
 const PREDEFINED_PALETTES = [
   { id: 'gold', name: 'Premium Gold', hex: '#D4AF37', className: 'bg-[#D4AF37]' },
@@ -12,10 +13,21 @@ const PREDEFINED_PALETTES = [
   { id: 'slate', name: 'Slate Modern', hex: '#64748B', className: 'bg-slate-500' },
 ];
 
-type TabType = 'branding' | 'notifications';
+type TabType = 'branding' | 'bookings' | 'notifications';
 
 export function SettingsAdminPage() {
-  const { tenant, isLoading, updateTenant, uploadLogo, isUpdating, isUploading } = useTenantSettings();
+  const {
+    tenant,
+    isLoading,
+    currentUserRole,
+    isLoadingRole,
+    updateTenant,
+    uploadLogo,
+    updateBookingConfirmationMode,
+    isUpdating,
+    isUploading,
+    isUpdatingBookingConfirmationMode,
+  } = useTenantSettings();
   
   const [activeTab, setActiveTab] = useState<TabType>('branding');
   
@@ -29,6 +41,9 @@ export function SettingsAdminPage() {
   const [businessHours, setBusinessHours] = useState<string>('');
   const [googleMapsUrl, setGoogleMapsUrl] = useState<string>('');
   const [emailActive, setEmailActive] = useState<boolean>(true);
+  const [bookingConfirmationMode, setBookingConfirmationMode] =
+    useState<BookingConfirmationMode>('automatic');
+  const isBookingConfirmationAvailable = tenant?.booking_confirmation_mode !== undefined;
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -45,6 +60,7 @@ export function SettingsAdminPage() {
       if (tenant.email_notifications_active !== undefined) {
         setEmailActive(tenant.email_notifications_active);
       }
+      setBookingConfirmationMode(tenant.booking_confirmation_mode ?? 'automatic');
     }
   }, [tenant]);
 
@@ -63,6 +79,17 @@ export function SettingsAdminPage() {
       setLogoPreview(URL.createObjectURL(compressedFile));
     } catch (err) {
       toast.error('Error al procesar la imagen.');
+    }
+  };
+
+  const handleBookingConfirmationSave = async () => {
+    if (currentUserRole !== 'admin' || !isBookingConfirmationAvailable) return;
+
+    try {
+      const persistedMode = await updateBookingConfirmationMode(bookingConfirmationMode);
+      setBookingConfirmationMode(persistedMode);
+    } catch {
+      setBookingConfirmationMode(tenant?.booking_confirmation_mode ?? 'automatic');
     }
   };
 
@@ -133,19 +160,21 @@ export function SettingsAdminPage() {
           <h1 className="text-3xl font-extrabold tracking-tight">Ajustes Generales</h1>
           <p className="text-muted-foreground mt-1">Personaliza tu marca y centro de notificaciones.</p>
         </div>
-        <button 
-          onClick={handleSave}
-          disabled={isUpdating || isUploading}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-6 h-12 rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-md shadow-primary/20"
-        >
-          {isUpdating || isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-          Guardar Cambios
-        </button>
+        {activeTab !== 'bookings' && (
+          <button
+            onClick={handleSave}
+            disabled={isUpdating || isUploading}
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-6 h-12 rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-md shadow-primary/20"
+          >
+            {isUpdating || isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+            Guardar Cambios
+          </button>
+        )}
       </div>
 
       {/* Pill Tabs */}
       <div className="flex justify-center sm:justify-start">
-        <div className="bg-slate-100 p-1.5 rounded-2xl flex space-x-1 shadow-inner border border-slate-200/60">
+        <div className="bg-slate-100 p-1.5 rounded-2xl flex space-x-1 shadow-inner border border-slate-200/60 overflow-x-auto max-w-full">
           <button
             onClick={() => setActiveTab('branding')}
             className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
@@ -156,6 +185,17 @@ export function SettingsAdminPage() {
           >
             <Palette className="w-4 h-4" />
             Marca Blanca
+          </button>
+          <button
+            onClick={() => setActiveTab('bookings')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all duration-300 ${
+              activeTab === 'bookings'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+            }`}
+          >
+            <CalendarCheck2 className="w-4 h-4" />
+            Reservas
           </button>
           <button
             onClick={() => setActiveTab('notifications')}
@@ -336,6 +376,127 @@ export function SettingsAdminPage() {
                   )}
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booking confirmation mode */}
+      {activeTab === 'bookings' && (
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="relative overflow-hidden rounded-3xl border border-amber-500/15 bg-[#11100e] p-6 shadow-2xl shadow-black/10 sm:p-8">
+            <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl" />
+
+            <div className="relative mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-400/10 text-[#C9A46A]">
+                  <CalendarCheck2 className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Confirmación de reservas</h2>
+                  <p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-400">
+                    Decide cómo se confirman las nuevas reservas realizadas desde tu página pública.
+                    Las citas existentes no cambian.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">
+                <ShieldCheck className="h-4 w-4" />
+                Protegido por permisos de administrador
+              </div>
+            </div>
+
+            <div className="relative grid gap-4 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setBookingConfirmationMode('automatic')}
+                disabled={!isBookingConfirmationAvailable || currentUserRole !== 'admin' || isLoadingRole || isUpdatingBookingConfirmationMode}
+                className={`group rounded-2xl border p-5 text-left transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
+                  bookingConfirmationMode === 'automatic'
+                    ? 'border-[#C9A46A]/50 bg-[#C9A46A]/10 shadow-lg shadow-amber-950/20'
+                    : 'border-zinc-800 bg-black/20 hover:border-zinc-700 hover:bg-white/[0.03]'
+                }`}
+              >
+                <div className="mb-5 flex items-start justify-between gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10 text-[#C9A46A]">
+                    <Zap className="h-5 w-5" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-[#C9A46A]">
+                      Recomendada
+                    </span>
+                    <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+                      bookingConfirmationMode === 'automatic'
+                        ? 'border-[#C9A46A] bg-[#C9A46A] text-black'
+                        : 'border-zinc-600'
+                    }`}>
+                      {bookingConfirmationMode === 'automatic' && <CheckCircle2 className="h-4 w-4" />}
+                    </span>
+                  </div>
+                </div>
+                <h3 className="font-bold text-white">Automática</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-400">
+                  Cada horario disponible queda confirmado inmediatamente al completar la reserva.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBookingConfirmationMode('manual')}
+                disabled={!isBookingConfirmationAvailable || currentUserRole !== 'admin' || isLoadingRole || isUpdatingBookingConfirmationMode}
+                className={`group rounded-2xl border p-5 text-left transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
+                  bookingConfirmationMode === 'manual'
+                    ? 'border-[#C9A46A]/50 bg-[#C9A46A]/10 shadow-lg shadow-amber-950/20'
+                    : 'border-zinc-800 bg-black/20 hover:border-zinc-700 hover:bg-white/[0.03]'
+                }`}
+              >
+                <div className="mb-5 flex items-start justify-between gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-800 text-zinc-300">
+                    <Clock3 className="h-5 w-5" />
+                  </div>
+                  <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+                    bookingConfirmationMode === 'manual'
+                      ? 'border-[#C9A46A] bg-[#C9A46A] text-black'
+                      : 'border-zinc-600'
+                  }`}>
+                    {bookingConfirmationMode === 'manual' && <CheckCircle2 className="h-4 w-4" />}
+                  </span>
+                </div>
+                <h3 className="font-bold text-white">Manual</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-400">
+                  Las solicitudes quedan pendientes hasta que un administrador las confirme.
+                </p>
+              </button>
+            </div>
+
+            <div className="relative mt-6 flex flex-col gap-4 border-t border-zinc-800 pt-6 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs leading-5 text-zinc-500">
+                {!isBookingConfirmationAvailable
+                  ? 'Esta configuración estará disponible al completar la actualización de Phase 30.'
+                  : currentUserRole === 'admin'
+                  ? 'El cambio se aplicará solamente a las nuevas reservas.'
+                  : 'Solo un administrador puede modificar esta configuración.'}
+              </p>
+              <button
+                type="button"
+                onClick={handleBookingConfirmationSave}
+                disabled={
+                  !isBookingConfirmationAvailable
+                  || currentUserRole !== 'admin'
+                  || isLoadingRole
+                  || isUpdatingBookingConfirmationMode
+                  || bookingConfirmationMode === (tenant?.booking_confirmation_mode ?? 'automatic')
+                }
+                className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#C9A46A] px-6 text-sm font-extrabold text-[#15110b] shadow-lg shadow-amber-950/30 transition-all hover:bg-[#d8b77f] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {isUpdatingBookingConfirmationMode ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Save className="h-5 w-5" />
+                )}
+                Guardar modalidad
+              </button>
             </div>
           </div>
         </div>

@@ -20,6 +20,9 @@ export interface Service {
   created_at: string;
 }
 
+export type BookingConfirmationMode = 'automatic' | 'manual';
+export type TenantUserRole = 'admin' | 'staff';
+
 export interface Tenant {
   id: string;
   name: string;
@@ -31,6 +34,7 @@ export interface Tenant {
   business_hours?: string;
   google_maps_url?: string;
   email_notifications_active?: boolean;
+  booking_confirmation_mode?: BookingConfirmationMode;
   created_at: string;
   updated_at: string;
 }
