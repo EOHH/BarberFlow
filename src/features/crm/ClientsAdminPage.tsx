@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useClientsAdmin } from '../../shared/hooks/useClientsAdmin';
 import type { Client } from '../../types';
 import { Search, User, Phone, DollarSign, Calendar, FileText, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { notifications as toast } from '../../shared/lib/notifications';
 import { useTenantSettings } from '../../shared/hooks/useTenantSettings';
 import { getThemeClasses } from '../../shared/utils/theme';
 
@@ -38,7 +38,7 @@ export function ClientsAdminPage() {
       await updateClientNotes({ id: selectedClient.id, notes: notesDraft });
       setSelectedClient({ ...selectedClient, private_notes: notesDraft });
       toast.success("Notas guardadas correctamente");
-    } catch (err) {
+    } catch {
       toast.error("Error al guardar las notas");
     } finally {
       setIsSavingNotes(false);

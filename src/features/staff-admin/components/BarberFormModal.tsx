@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { Barber } from '../../../types';
 import { X as XIcon, User, Upload, Loader2, Mail, Star, FileText, ImagePlus } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
-import { toast } from 'sonner';
+import { notifications as toast } from '../../../shared/lib/notifications';
 import { useTenantSettings } from '../../../shared/hooks/useTenantSettings';
 import { getThemeClasses } from '../../../shared/utils/theme';
 
@@ -56,7 +56,7 @@ export function BarberFormModal({ isOpen, onClose, onSave, initialData, uploadAv
       const compressedFile = await imageCompression(file, options);
       setFileToUpload(compressedFile);
       setAvatarPreview(URL.createObjectURL(compressedFile));
-    } catch (error) {
+    } catch {
       toast.error('Error al procesar la imagen.');
     }
   };
@@ -85,7 +85,9 @@ export function BarberFormModal({ isOpen, onClose, onSave, initialData, uploadAv
       onClose();
     } catch (err: any) {
       console.error(err);
-      toast.error(`Error al guardar el barbero: ${err.message || err}`);
+      toast.error('No pudimos guardar al barbero', {
+        description: 'Revisa los datos e inténtalo nuevamente.',
+      });
     } finally {
       setIsSubmitting(false);
     }

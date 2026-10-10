@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tenantRepository } from '../../infrastructure/supabase/repositories/tenant.repository';
 import type { BookingConfirmationMode, Tenant } from '../../types';
-import { toast } from 'sonner';
+import { notifications as toast } from '../lib/notifications';
 
 export function useTenantSettings() {
   const queryClient = useQueryClient();
@@ -26,15 +26,19 @@ export function useTenantSettings() {
       queryClient.invalidateQueries({ queryKey: ['public-tenant'] });
       toast.success('Configuración guardada exitosamente');
     },
-    onError: (error) => {
-      toast.error('Error al actualizar configuración: ' + error.message);
+    onError: () => {
+      toast.error('No pudimos guardar la configuración', {
+        description: 'Revisa tu conexión e inténtalo nuevamente.',
+      });
     }
   });
 
   const uploadLogoMutation = useMutation({
     mutationFn: (file: File) => tenantRepository.uploadLogo(file),
-    onError: (error) => {
-      toast.error('Error al subir logo: ' + error.message);
+    onError: () => {
+      toast.error('No pudimos subir el logotipo', {
+        description: 'Verifica el archivo y vuelve a intentarlo.',
+      });
     }
   });
 
@@ -51,8 +55,10 @@ export function useTenantSettings() {
       });
       toast.success('Modalidad de reservas actualizada');
     },
-    onError: (error) => {
-      toast.error('No se pudo actualizar la modalidad: ' + error.message);
+    onError: () => {
+      toast.error('No pudimos actualizar la modalidad', {
+        description: 'La configuración anterior se mantiene sin cambios.',
+      });
     },
   });
 

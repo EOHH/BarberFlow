@@ -5,6 +5,7 @@ import { useAuth } from '../../features/auth/AuthContext';
 import { AdminThemeProvider, useAdminTheme } from './AdminThemeProvider';
 import { useTenantSettings } from '../hooks/useTenantSettings';
 import { getThemeClasses } from '../utils/theme';
+import { notifications } from '../lib/notifications';
 
 function AdminLayoutInner() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -14,6 +15,8 @@ function AdminLayoutInner() {
   const { user, signOut } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const signOutLock = useRef(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const { theme: adminTheme, toggleTheme } = useAdminTheme();
   const { tenant } = useTenantSettings();
@@ -30,8 +33,23 @@ function AdminLayoutInner() {
   }, []);
 
   const handleLogout = async () => {
-    await signOut();
-    navigate('/login');
+    if (signOutLock.current) return;
+
+    signOutLock.current = true;
+    setIsSigningOut(true);
+    try {
+      await signOut();
+      notifications.info('Sesión cerrada', {
+        description: 'Tu sesión se cerró de forma segura.',
+      });
+      navigate('/login');
+    } catch {
+      notifications.error('No pudimos cerrar la sesión', {
+        description: 'Inténtalo nuevamente en unos momentos.',
+      });
+      signOutLock.current = false;
+      setIsSigningOut(false);
+    }
   };
 
   const shopName = user?.user_metadata?.shop_name || 'Admin';
@@ -120,7 +138,8 @@ function AdminLayoutInner() {
             <div className="absolute bottom-20 left-4 w-[228px] bg-white dark:bg-[#141414] rounded-xl shadow-xl border border-slate-200 dark:border-zinc-800 py-2 z-50">
               <button 
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors text-left"
+                disabled={isSigningOut}
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors text-left disabled:opacity-50"
               >
                 <LogOut className="w-4 h-4" />
                 Cerrar Sesión
@@ -212,7 +231,7 @@ function AdminLayoutInner() {
                  ))}
                </nav>
                <div className="p-4 border-t border-slate-200 dark:border-zinc-800">
-                  <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-red-600 font-semibold">
+                  <button onClick={handleLogout} disabled={isSigningOut} className="w-full flex items-center gap-3 px-4 py-3 text-red-600 font-semibold disabled:opacity-50">
                     <LogOut className="w-5 h-5" /> Cerrar Sesión
                   </button>
                </div>

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminRepository } from '../../infrastructure/supabase/repositories/admin.repository';
 import type { Appointment } from '../../types';
-import { toast } from 'sonner';
+import { notifications as toast } from '../lib/notifications';
 import { useEffect } from 'react';
 import { supabase } from '../../infrastructure/supabase/client';
 
@@ -59,12 +59,14 @@ export function useAdminAppointments(date: string) {
       }
       return { previousAppointments };
     },
-    onError: (err, _variables, context) => {
+    onError: (_err, _variables, context) => {
       // Revertir en caso de error
       if (context?.previousAppointments) {
         queryClient.setQueryData(queryKey, context.previousAppointments);
       }
-      toast.error('Error al actualizar la cita: ' + err.message);
+      toast.error('No pudimos actualizar la cita', {
+        description: 'Comprueba el estado actual e inténtalo nuevamente.',
+      });
     },
     onSuccess: () => {
       toast.success('Estado actualizado correctamente');

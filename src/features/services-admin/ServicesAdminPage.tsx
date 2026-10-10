@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useServicesAdmin } from '../../shared/hooks/useServicesAdmin';
-import { toast } from 'sonner';
+import { notifications as toast } from '../../shared/lib/notifications';
 import type { Service } from '../../types';
 import { ServiceFormModal } from './components/ServiceFormModal';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { useTenantSettings } from '../../shared/hooks/useTenantSettings';
 import { getThemeClasses } from '../../shared/utils/theme';
+import { ConfirmDialog } from '../../shared/components/ConfirmDialog';
 
 export function ServicesAdminPage() {
   const { services, isLoading, createService, updateService, deleteService, uploadImage } = useServicesAdmin();
@@ -15,6 +16,8 @@ export function ServicesAdminPage() {
   // Estado del Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
+  const [serviceToDelete, setServiceToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleOpenNew = () => {
     setEditingService(null);
@@ -27,21 +30,16 @@ export function ServicesAdminPage() {
   };
 
   const handleDelete = async (id: string) => {
-    toast('¿Eliminar servicio?', {
-      description: 'Esta acción no se puede deshacer.',
-      action: {
-        label: 'Eliminar',
-        onClick: async () => {
-          try {
-            await deleteService(id);
-            toast.success("Servicio eliminado");
-          } catch (error) {
-            toast.error("No se pudo eliminar el servicio");
-          }
-        }
-      },
-      cancel: { label: 'Cancelar', onClick: () => {} }
-    });
+    setIsDeleting(true);
+    try {
+      await deleteService(id);
+      setServiceToDelete(null);
+      toast.success('Servicio eliminado');
+    } catch {
+      toast.error('No pudimos eliminar el servicio');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleSave = async (serviceData: Partial<Omit<Service, 'id' | 'created_at'>>) => {
@@ -134,7 +132,7 @@ export function ServicesAdminPage() {
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={() => handleDelete(service.id)}
+                        onClick={() => setServiceToDelete(service.id)}
                         className="p-2.5 text-slate-400 hover:text-rose-500 bg-slate-100 dark:bg-zinc-800/50 hover:bg-rose-500/10 rounded-xl transition-colors"
                         title="Eliminar"
                       >
@@ -155,6 +153,17 @@ export function ServicesAdminPage() {
         onSave={handleSave}
         initialData={editingService}
         uploadImage={uploadImage}
+      />
+      <ConfirmDialog
+        open={serviceToDelete !== null}
+        title="Eliminar servicio"
+        description="El servicio dejará de estar disponible para nuevas reservas. Esta acción no se puede deshacer."
+        confirmLabel="Eliminar servicio"
+        isPending={isDeleting}
+        onCancel={() => setServiceToDelete(null)}
+        onConfirm={() => {
+          if (serviceToDelete) void handleDelete(serviceToDelete);
+        }}
       />
     </div>
   );

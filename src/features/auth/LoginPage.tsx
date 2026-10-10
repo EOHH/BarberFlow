@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { supabase } from '../../infrastructure/supabase/client';
 import { useAuth } from './AuthContext';
 import { Mail, Lock, Calendar, BarChart2, Users, ArrowRight, Loader2 } from 'lucide-react';
+import { notifications } from '../../shared/lib/notifications';
 
 export function LoginPage() {
   const { session, isLoading } = useAuth();
@@ -10,8 +11,8 @@ export function LoginPage() {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submissionLock = useRef(false);
 
   if (!isLoading && session) {
     return <Navigate to="/admin" replace />;
@@ -19,8 +20,10 @@ export function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submissionLock.current) return;
+
+    submissionLock.current = true;
     setIsSubmitting(true);
-    setError('');
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -28,11 +31,17 @@ export function LoginPage() {
     });
 
     if (error) {
-      setError(error.message === 'Invalid login credentials' 
-        ? 'Credenciales incorrectas. Verifica tu email y contraseña.' 
-        : error.message);
+      notifications.error('No pudimos iniciar sesión', {
+        description: error.message === 'Invalid login credentials'
+          ? 'El correo o la contraseña no son correctos.'
+          : 'Verifica tu conexión e inténtalo nuevamente.',
+      });
+      submissionLock.current = false;
       setIsSubmitting(false);
     } else {
+      notifications.success('Sesión iniciada', {
+        description: 'Bienvenido de vuelta a BarberFlow.',
+      });
       navigate('/admin');
     }
   };
@@ -193,12 +202,6 @@ export function LoginPage() {
                 Recordarme por 30 días
               </label>
             </div>
-
-            {error && (
-              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium text-center">
-                {error}
-              </div>
-            )}
 
             <button
               type="submit"

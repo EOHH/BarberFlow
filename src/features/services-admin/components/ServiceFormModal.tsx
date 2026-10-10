@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { Service } from '../../../types';
 import { X as XIcon, Upload, Loader2, Image as ImageIcon, Plus, Check, Clock, Type, FileText, Tag, ImagePlus } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
-import { toast } from 'sonner';
+import { notifications as toast } from '../../../shared/lib/notifications';
 import { useCategoriesAdmin } from '../../../shared/hooks/useCategoriesAdmin';
 import { useTenantSettings } from '../../../shared/hooks/useTenantSettings';
 import { getThemeClasses } from '../../../shared/utils/theme';
@@ -81,7 +81,7 @@ export function ServiceFormModal({ isOpen, onClose, onSave, initialData, uploadI
       const compressedFile = await imageCompression(file, options);
       setFileToUpload(compressedFile);
       setImagePreview(URL.createObjectURL(compressedFile));
-    } catch (error) {
+    } catch {
       toast.error('Error al procesar la imagen.');
     }
   };
@@ -94,8 +94,10 @@ export function ServiceFormModal({ isOpen, onClose, onSave, initialData, uploadI
       toast.success("Categoría creada exitosamente");
       setIsInlineCreatingCategory(false);
       setNewCategoryName('');
-    } catch (error: any) {
-      toast.error(`Error al crear categoría: ${error.message}`);
+    } catch {
+      toast.error('No pudimos crear la categoría', {
+        description: 'Verifica el nombre e inténtalo nuevamente.',
+      });
     }
   };
 
@@ -121,8 +123,10 @@ export function ServiceFormModal({ isOpen, onClose, onSave, initialData, uploadI
       });
       toast.success(initialData ? 'Servicio actualizado' : 'Servicio creado');
       onClose();
-    } catch (err: any) {
-      toast.error(`Error al guardar el servicio: ${err.message || err}`);
+    } catch {
+      toast.error('No pudimos guardar el servicio', {
+        description: 'Revisa los datos e inténtalo nuevamente.',
+      });
     } finally {
       setIsSubmitting(false);
     }

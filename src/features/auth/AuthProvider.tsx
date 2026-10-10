@@ -39,14 +39,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setTenantResolution(resolution);
       setTenantResolutionStatus(resolution.status);
       return resolution;
-    } catch (error) {
+    } catch {
       if (requestId !== tenantResolutionRequest.current) return null;
-      const message = error instanceof Error
-        ? error.message
-        : 'No se pudo verificar la configuración de tu barbería.';
       setTenantResolution(null);
       setTenantResolutionStatus('error');
-      setTenantResolutionError(message);
+      setTenantResolutionError('No pudimos verificar tu barbería. Revisa tu conexión e inténtalo nuevamente.');
       return null;
     }
   }, [session]);
@@ -83,7 +80,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [refreshTenantResolution]);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) throw new Error('No se pudo cerrar la sesión.');
   };
 
   return (

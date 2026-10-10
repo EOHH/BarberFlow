@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useStaffAdmin } from '../../shared/hooks/useStaffAdmin';
-import { toast } from 'sonner';
+import { notifications as toast } from '../../shared/lib/notifications';
 import type { Barber } from '../../types';
 import { BarberFormModal } from './components/BarberFormModal';
 import { Plus, Edit2, Archive, ArchiveRestore, User, CalendarDays } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTenantSettings } from '../../shared/hooks/useTenantSettings';
 import { getThemeClasses } from '../../shared/utils/theme';
+import { ConfirmDialog } from '../../shared/components/ConfirmDialog';
 
 export function StaffAdminPage() {
   const { barbers, isLoading, createBarber, updateBarber, deactivateBarber, reactivateBarber, uploadAvatar } = useStaffAdmin();
@@ -15,6 +16,8 @@ export function StaffAdminPage() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBarber, setEditingBarber] = useState<Barber | null>(null);
+  const [barberToToggle, setBarberToToggle] = useState<Barber | null>(null);
+  const [isChangingStatus, setIsChangingStatus] = useState(false);
 
   const handleOpenNew = () => {
     setEditingBarber(null);
@@ -28,31 +31,21 @@ export function StaffAdminPage() {
 
   const handleToggleStatus = async (barber: Barber) => {
     const isDeactivating = barber.is_active !== false; // por defecto true
-    toast(`¿${isDeactivating ? 'Desactivar' : 'Reactivar'} barbero?`, {
-      description: isDeactivating 
-        ? 'El barbero desaparecerá de la página pública pero mantendrá su historial de citas.'
-        : 'El barbero volverá a estar disponible para recibir reservas.',
-      action: {
-        label: isDeactivating ? 'Desactivar' : 'Reactivar',
-        onClick: async () => {
-          try {
-            if (isDeactivating) {
-              await deactivateBarber(barber.id);
-              toast.success("Barbero desactivado y archivado");
-            } else {
-              await reactivateBarber(barber.id);
-              toast.success("Barbero reactivado");
-            }
-          } catch (error) {
-            toast.error("Ocurrió un error al cambiar el estado.");
-          }
-        }
-      },
-      cancel: {
-        label: 'Cancelar',
-        onClick: () => {}
+    setIsChangingStatus(true);
+    try {
+      if (isDeactivating) {
+        await deactivateBarber(barber.id);
+        toast.success('Barbero desactivado y archivado');
+      } else {
+        await reactivateBarber(barber.id);
+        toast.success('Barbero reactivado');
       }
-    });
+      setBarberToToggle(null);
+    } catch {
+      toast.error('No pudimos cambiar el estado del barbero');
+    } finally {
+      setIsChangingStatus(false);
+    }
   };
 
   const handleSave = async (data: Partial<Barber>) => {
@@ -115,7 +108,7 @@ export function StaffAdminPage() {
                   </button>
                   {barber.is_active !== false ? (
                     <button 
-                      onClick={() => handleToggleStatus(barber)}
+                      onClick={() => setBarberToToggle(barber)}
                       className="p-2.5 text-slate-400 hover:text-amber-500 bg-slate-100 dark:bg-zinc-800/50 hover:bg-amber-500/10 rounded-xl transition-colors"
                       title="Desactivar (Archivar)"
                     >
@@ -123,7 +116,7 @@ export function StaffAdminPage() {
                     </button>
                   ) : (
                     <button 
-                      onClick={() => handleToggleStatus(barber)}
+                      onClick={() => setBarberToToggle(barber)}
                       className={`p-2.5 text-slate-400 hover:${themeClasses.text} bg-slate-100 dark:bg-zinc-800/50 hover:${themeClasses.bgLight} rounded-xl transition-colors`}
                       title="Reactivar"
                     >
@@ -166,6 +159,20 @@ export function StaffAdminPage() {
         onSave={handleSave}
         initialData={editingBarber}
         uploadAvatar={uploadAvatar}
+      />
+      <ConfirmDialog
+        open={barberToToggle !== null}
+        title={barberToToggle?.is_active === false ? 'Reactivar barbero' : 'Desactivar barbero'}
+        description={barberToToggle?.is_active === false
+          ? 'El barbero volverá a estar disponible para recibir nuevas reservas.'
+          : 'Desaparecerá de la página pública, pero conservará todo su historial de citas.'}
+        confirmLabel={barberToToggle?.is_active === false ? 'Reactivar' : 'Desactivar'}
+        isPending={isChangingStatus}
+        tone={barberToToggle?.is_active === false ? 'warning' : 'danger'}
+        onCancel={() => setBarberToToggle(null)}
+        onConfirm={() => {
+          if (barberToToggle) void handleToggleStatus(barberToToggle);
+        }}
       />
     </div>
   );

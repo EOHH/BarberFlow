@@ -4,6 +4,7 @@ import { supabase } from '../../infrastructure/supabase/client';
 import { useAuth } from './AuthContext';
 import { Store, Mail, Lock, Eye, CheckCircle2, Loader2, ArrowRight, Link as LinkIcon } from 'lucide-react';
 import { sanitizeSlug, slugifyShopName } from './onboarding.utils';
+import { notifications } from '../../shared/lib/notifications';
 
 export function RegisterPage() {
   const { session, isLoading } = useAuth();
@@ -14,7 +15,6 @@ export function RegisterPage() {
   const [slugWasEdited, setSlugWasEdited] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const submissionLock = useRef(false);
@@ -33,7 +33,6 @@ export function RegisterPage() {
 
     submissionLock.current = true;
     setIsSubmitting(true);
-    setError('');
 
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -50,13 +49,24 @@ export function RegisterPage() {
 
       if (error) throw error;
       if (data.session) {
+        notifications.success('Cuenta creada', {
+          description: 'Tu barbería está lista. Te estamos llevando al panel.',
+        });
         navigate('/admin', { replace: true });
       } else {
-        alert('¡Registro exitoso! Verifica tu correo electrónico para continuar.');
+        notifications.success('Revisa tu correo', {
+          description: 'Enviamos un enlace de verificación para activar tu cuenta.',
+          duration: 6500,
+        });
         navigate('/login', { replace: true });
       }
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : 'No se pudo crear la cuenta.');
+      const message = caughtError instanceof Error ? caughtError.message.toLowerCase() : '';
+      notifications.error('No pudimos crear tu cuenta', {
+        description: message.includes('already registered')
+          ? 'Ese correo ya está registrado. Intenta iniciar sesión.'
+          : 'Verifica tus datos y vuelve a intentarlo en unos momentos.',
+      });
     } finally {
       submissionLock.current = false;
       setIsSubmitting(false);
@@ -235,12 +245,6 @@ export function RegisterPage() {
                 </div>
               </div>
             </div>
-
-            {error && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium text-center">
-                {error}
-              </div>
-            )}
 
             <button
               type="submit"

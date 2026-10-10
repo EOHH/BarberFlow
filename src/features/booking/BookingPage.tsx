@@ -17,7 +17,7 @@ import { ChevronLeft } from 'lucide-react';
 import { usePublicTenant } from '../../shared/hooks/usePublicTenant';
 import { useDynamicPWA } from '../../shared/hooks/useDynamicPWA';
 import { usePublicRealtime } from '../../shared/hooks/usePublicRealtime';
-import { toast } from 'sonner';
+import { notifications as toast } from '../../shared/lib/notifications';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getThemeClasses } from '../../shared/utils/theme';
 import { LiveBarberStatus } from './components/LiveBarberStatus';
@@ -95,8 +95,8 @@ export function BookingPage() {
   const handleGenericBookClick = () => {
     if (!selectedService) {
       document.getElementById('services-section')?.scrollIntoView({ behavior: 'smooth' });
-      toast('Selecciona un servicio para comenzar', {
-        style: { background: '#0a0a0a', color: '#fff', border: '1px solid #27272a' }
+      toast.info('Selecciona un servicio', {
+        description: 'Elige una opción del catálogo para continuar con tu reserva.',
       });
     } else {
       if (step === 1) handleNext();
@@ -130,8 +130,9 @@ export function BookingPage() {
       setStep(6); // Now it's step 6
     } catch (err: any) {
       console.error(err);
-      const errorMsg = err instanceof Error ? err.message : 'Error desconocido al crear la cita.';
-      toast.error(errorMsg);
+      toast.error('No pudimos crear la reserva', {
+        description: 'El horario pudo cambiar. Selecciona otro o inténtalo nuevamente.',
+      });
     }
   };
 

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAvailabilityAdmin } from '../../shared/hooks/useAvailabilityAdmin';
 import { useStaffAdmin } from '../../shared/hooks/useStaffAdmin';
 import { ArrowLeft, Clock, Save, Loader2, Calendar } from 'lucide-react';
-import { toast } from 'sonner';
+import { notifications as toast } from '../../shared/lib/notifications';
 import type { Availability } from '../../types';
 import { useTenantSettings } from '../../shared/hooks/useTenantSettings';
 import { getThemeClasses } from '../../shared/utils/theme';
@@ -59,8 +59,10 @@ export function AvailabilityManagerPage() {
       await saveAvailability(schedule);
       toast.success('Horario guardado exitosamente');
       navigate('/admin/staff');
-    } catch (err: any) {
-      toast.error('Error al guardar el horario: ' + err.message);
+    } catch {
+      toast.error('No pudimos guardar el horario', {
+        description: 'Comprueba que el horario sea válido e inténtalo nuevamente.',
+      });
     } finally {
       setIsSaving(false);
     }

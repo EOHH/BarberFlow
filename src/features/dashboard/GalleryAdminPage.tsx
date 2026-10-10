@@ -3,7 +3,8 @@ import { galleryRepository } from '../../infrastructure/supabase/repositories/ga
 import { useTenantSettings } from '../../shared/hooks/useTenantSettings';
 import type { GalleryImage } from '../../types';
 import { Trash2, UploadCloud, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { notifications as toast } from '../../shared/lib/notifications';
+import { ConfirmDialog } from '../../shared/components/ConfirmDialog';
 
 export function GalleryAdminPage() {
   const { tenant, isLoading: isLoadingTenant } = useTenantSettings();
@@ -12,6 +13,7 @@ export function GalleryAdminPage() {
   const [isLoadingGallery, setIsLoadingGallery] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [imageToDelete, setImageToDelete] = useState<GalleryImage | null>(null);
 
   useEffect(() => {
     if (tenantId) {
@@ -60,12 +62,11 @@ export function GalleryAdminPage() {
   };
 
   const handleDelete = async (image: GalleryImage) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta imagen?')) return;
-
     setDeletingId(image.id);
     try {
       await galleryRepository.deleteImage(image.id, image.image_url);
       setImages(prev => prev.filter(img => img.id !== image.id));
+      setImageToDelete(null);
       toast.success('Imagen eliminada');
     } catch (error) {
       console.error(error);
@@ -137,7 +138,7 @@ export function GalleryAdminPage() {
               {/* Overlay with Delete Button */}
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <button
-                  onClick={() => handleDelete(img)}
+                  onClick={() => setImageToDelete(img)}
                   disabled={deletingId === img.id}
                   className="bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white p-3 rounded-full transition-colors"
                   title="Eliminar imagen"
@@ -153,6 +154,18 @@ export function GalleryAdminPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={imageToDelete !== null}
+        title="Eliminar imagen"
+        description="Esta imagen desaparecerá de la galería pública y la acción no se puede deshacer."
+        confirmLabel="Eliminar imagen"
+        isPending={imageToDelete ? deletingId === imageToDelete.id : false}
+        onCancel={() => setImageToDelete(null)}
+        onConfirm={() => {
+          if (imageToDelete) void handleDelete(imageToDelete);
+        }}
+      />
     </div>
   );
 }

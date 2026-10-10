@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTenantSettings } from '../../shared/hooks/useTenantSettings';
 import imageCompression from 'browser-image-compression';
 import { Image as ImageIcon, Upload, Save, Loader2, Palette, CheckCircle2, Store, Bell, Mail, MessageCircle, Star, Share2, CalendarCheck2, Zap, Clock3, ShieldCheck } from 'lucide-react';
-import { toast } from 'sonner';
+import { notifications as toast } from '../../shared/lib/notifications';
 import type { BookingConfirmationMode } from '../../types';
 
 const PREDEFINED_PALETTES = [
@@ -77,7 +77,7 @@ export function SettingsAdminPage() {
       const compressedFile = await imageCompression(file, options);
       setFileToUpload(compressedFile);
       setLogoPreview(URL.createObjectURL(compressedFile));
-    } catch (err) {
+    } catch {
       toast.error('Error al procesar la imagen.');
     }
   };

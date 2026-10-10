@@ -4,6 +4,8 @@ import { supabase } from '../../infrastructure/supabase/client';
 import { Calendar, Clock, User, Scissors, CheckCircle2, XCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { EXPIRED_STATUS_BADGE_CLASS } from '../../shared/utils/appointmentStatusStyles';
+import { ConfirmDialog } from '../../shared/components/ConfirmDialog';
+import { notifications } from '../../shared/lib/notifications';
 
 const TIME_ZONE = 'America/Lima';
 
@@ -16,6 +18,7 @@ export function ClientPortal() {
   const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,8 +66,6 @@ export function ClientPortal() {
   }, [slug, id]);
 
   const handleCancel = async () => {
-    if (!window.confirm('¿Estás seguro que deseas cancelar tu cita? Esta acción no se puede deshacer.')) return;
-    
     setCancelling(true);
     try {
       const { error } = await supabase.rpc('cancel_public_appointment', {
@@ -74,8 +75,14 @@ export function ClientPortal() {
         
       if (error) throw error;
       setAppointment({ ...appointment, status: 'cancelled' });
-    } catch (err: any) {
-      alert('Error al cancelar: ' + err.message);
+      setIsCancelDialogOpen(false);
+      notifications.success('Cita cancelada', {
+        description: 'El horario quedó disponible nuevamente.',
+      });
+    } catch {
+      notifications.error('No pudimos cancelar la cita', {
+        description: 'La cita podría estar fuera del plazo permitido o haber cambiado de estado.',
+      });
     } finally {
       setCancelling(false);
     }
@@ -190,7 +197,7 @@ export function ClientPortal() {
                     <p className="text-zinc-300 text-sm mb-4">Si no podrás asistir, por favor cancela tu cita para liberar el espacio a otro cliente.</p>
                     <button
                       disabled={cancelling}
-                      onClick={handleCancel}
+                      onClick={() => setIsCancelDialogOpen(true)}
                       className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-4 rounded-xl transition-all active:scale-95 disabled:opacity-50"
                     >
                       {cancelling ? 'Cancelando...' : 'Cancelar mi Cita'}
@@ -201,6 +208,16 @@ export function ClientPortal() {
             )}
           </div>
         )}
+
+        <ConfirmDialog
+          open={isCancelDialogOpen}
+          title="Cancelar cita"
+          description="Tu horario quedará libre para otro cliente. Esta acción no se puede deshacer."
+          confirmLabel="Sí, cancelar cita"
+          isPending={cancelling}
+          onCancel={() => setIsCancelDialogOpen(false)}
+          onConfirm={() => void handleCancel()}
+        />
 
       </div>
     </div>

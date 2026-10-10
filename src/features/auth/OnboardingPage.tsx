@@ -4,6 +4,7 @@ import { AlertCircle, Link as LinkIcon, Loader2, RefreshCw, Store } from 'lucide
 import { useAuth } from './AuthContext';
 import { onboardingRepository } from '../../infrastructure/supabase/repositories/onboarding.repository';
 import { sanitizeSlug, slugifyShopName } from './onboarding.utils';
+import { notifications } from '../../shared/lib/notifications';
 
 export function OnboardingPage() {
   const {
@@ -21,7 +22,6 @@ export function OnboardingPage() {
   const [shopName, setShopName] = useState(initialName);
   const [slug, setSlug] = useState(initialSlug);
   const [slugWasEdited, setSlugWasEdited] = useState(Boolean(initialSlug));
-  const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submissionLock = useRef(false);
   const prefilledUserId = useRef<string | null>(session?.user.id ?? null);
@@ -61,7 +61,6 @@ export function OnboardingPage() {
 
     submissionLock.current = true;
     setIsSubmitting(true);
-    setError('');
 
     try {
       const resolution = await onboardingRepository.complete(shopName.trim(), slug.trim());
@@ -69,15 +68,25 @@ export function OnboardingPage() {
         throw new Error('No se pudo completar la asociación con tu barbería.');
       }
       await refreshTenantResolution();
+      notifications.success('Barbería configurada', {
+        description: 'Ya puedes administrar tu negocio desde el panel.',
+      });
       navigate('/admin', { replace: true });
     } catch (caughtError) {
       const message = caughtError instanceof Error ? caughtError.message : '';
       if (message.includes('SLUG_TAKEN') || message.includes('duplicate key')) {
-        setError('Ese enlace público ya pertenece a otra barbería. Elige uno diferente.');
+        notifications.warning('El enlace ya está ocupado', {
+          description: 'Elige un enlace público diferente para continuar.',
+        });
       } else if (message.includes('ONBOARDING_AMBIGUOUS')) {
-        setError('Tu cuenta requiere revisión porque tiene más de una barbería propietaria. Contacta a soporte.');
+        notifications.error('Tu cuenta requiere revisión', {
+          description: 'Contacta a soporte para verificar la asociación de tu barbería.',
+          duration: 6500,
+        });
       } else {
-        setError(message || 'No pudimos completar la configuración. Revisa tu conexión e inténtalo nuevamente.');
+        notifications.error('No pudimos completar la configuración', {
+          description: 'Revisa tu conexión e inténtalo nuevamente.',
+        });
       }
     } finally {
       submissionLock.current = false;
@@ -114,12 +123,6 @@ export function OnboardingPage() {
             No encontramos una barbería asociada a tu cuenta. Confirma los datos faltantes para continuar.
           </p>
         </div>
-
-        {error && (
-          <div className="bg-red-500/10 border border-red-500 text-red-400 p-4 rounded-lg mb-6 text-sm">
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
