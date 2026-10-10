@@ -29,7 +29,9 @@ export function GalleryAdminPage() {
       setImages(data);
     } catch (error) {
       console.error(error);
-      toast.error('Error al cargar la galería');
+      toast.error('No pudimos cargar la galería', {
+        description: 'Revisa tu conexión e inténtalo nuevamente.',
+      });
     } finally {
       setIsLoadingGallery(false);
     }
@@ -40,7 +42,9 @@ export function GalleryAdminPage() {
     if (!file || !tenantId) return;
 
     if (!file.type.startsWith('image/')) {
-      toast.error('Por favor, selecciona un archivo de imagen válido.');
+      toast.warning('Selecciona una imagen válida', {
+        description: 'El archivo elegido debe ser una imagen compatible.',
+      });
       return;
     }
 
@@ -50,10 +54,12 @@ export function GalleryAdminPage() {
     try {
       const newImage = await galleryRepository.uploadImage(tenantId, file);
       setImages(prev => [newImage, ...prev]);
-      toast.success('Imagen subida correctamente', { id: toastId });
+      toast.update(toastId, 'success', 'Imagen subida correctamente');
     } catch (error) {
       console.error(error);
-      toast.error('Error al subir la imagen', { id: toastId });
+      toast.update(toastId, 'error', 'No pudimos subir la imagen', {
+        description: 'Verifica el archivo y vuelve a intentarlo.',
+      });
     } finally {
       setIsUploading(false);
       // Reset input
@@ -70,7 +76,9 @@ export function GalleryAdminPage() {
       toast.success('Imagen eliminada');
     } catch (error) {
       console.error(error);
-      toast.error('Error al eliminar la imagen');
+      toast.error('No pudimos eliminar la imagen', {
+        description: 'La imagen permanece en la galería.',
+      });
     } finally {
       setDeletingId(null);
     }

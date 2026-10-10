@@ -39,7 +39,9 @@ export function ClientsAdminPage() {
       setSelectedClient({ ...selectedClient, private_notes: notesDraft });
       toast.success("Notas guardadas correctamente");
     } catch {
-      toast.error("Error al guardar las notas");
+      toast.error('No pudimos guardar las notas', {
+        description: 'Los cambios no se aplicaron. Inténtalo nuevamente.',
+      });
     } finally {
       setIsSavingNotes(false);
     }

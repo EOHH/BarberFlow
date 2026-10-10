@@ -1,42 +1,49 @@
 import { sileo, type SileoOptions } from 'sileo';
 
-interface NotificationOptions {
+export type NotificationKind = 'success' | 'error' | 'warning' | 'info';
+
+export interface NotificationOptions {
   description?: string;
   duration?: number | null;
-  id?: string;
 }
 
-const toSileoOptions = (title: string, options?: NotificationOptions): SileoOptions => ({
-  title,
-  description: options?.description,
-  duration: options?.duration,
-});
+export type NotificationId = string;
 
-const replacePending = (id?: string) => {
-  if (id) sileo.dismiss(id);
+const toSileoOptions = (title: string, options?: NotificationOptions): SileoOptions => {
+  const sileoOptions: SileoOptions = { title };
+  if (options?.description !== undefined) sileoOptions.description = options.description;
+  if (options?.duration !== undefined) sileoOptions.duration = options.duration;
+  return sileoOptions;
+};
+
+const show = (kind: NotificationKind, title: string, options?: NotificationOptions): NotificationId => {
+  return sileo[kind](toSileoOptions(title, options));
 };
 
 export const notifications = {
   success(title: string, options?: NotificationOptions) {
-    replacePending(options?.id);
-    return sileo.success(toSileoOptions(title, options));
+    return show('success', title, options);
   },
   error(title: string, options?: NotificationOptions) {
-    replacePending(options?.id);
-    return sileo.error(toSileoOptions(title, options));
+    return show('error', title, options);
   },
   warning(title: string, options?: NotificationOptions) {
-    replacePending(options?.id);
-    return sileo.warning(toSileoOptions(title, options));
+    return show('warning', title, options);
   },
   info(title: string, options?: NotificationOptions) {
-    replacePending(options?.id);
-    return sileo.info(toSileoOptions(title, options));
+    return show('info', title, options);
   },
   loading(title: string, options?: Omit<NotificationOptions, 'duration'>) {
     return sileo.show({ ...toSileoOptions(title, options), type: 'loading', duration: null });
   },
-  dismiss(id: string) {
+  update(id: NotificationId, kind: NotificationKind, title: string, options?: NotificationOptions) {
     sileo.dismiss(id);
+    return show(kind, title, options);
+  },
+  close(id: NotificationId) {
+    sileo.dismiss(id);
+  },
+  clear() {
+    sileo.clear();
   },
 };

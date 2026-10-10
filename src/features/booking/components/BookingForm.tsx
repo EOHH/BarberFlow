@@ -129,7 +129,7 @@ export function BookingForm({ onSubmit, isSubmitting, theme }: Props) {
         </div>
       </div>
 
-      {error && <p className="text-red-400 text-sm font-medium text-center bg-red-400/10 p-3 rounded-xl border border-red-400/20">{error}</p>}
+      {error && <p role="alert" aria-live="polite" className="text-red-400 text-sm font-medium text-center bg-red-400/10 p-3 rounded-xl border border-red-400/20">{error}</p>}
 
       <button
         type="submit"

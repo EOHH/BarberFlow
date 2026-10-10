@@ -57,7 +57,9 @@ export function BarberFormModal({ isOpen, onClose, onSave, initialData, uploadAv
       setFileToUpload(compressedFile);
       setAvatarPreview(URL.createObjectURL(compressedFile));
     } catch {
-      toast.error('Error al procesar la imagen.');
+      toast.error('No pudimos procesar la imagen', {
+        description: 'Selecciona otro archivo e inténtalo nuevamente.',
+      });
     }
   };
 

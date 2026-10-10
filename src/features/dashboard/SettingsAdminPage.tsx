@@ -78,7 +78,9 @@ export function SettingsAdminPage() {
       setFileToUpload(compressedFile);
       setLogoPreview(URL.createObjectURL(compressedFile));
     } catch {
-      toast.error('Error al procesar la imagen.');
+      toast.error('No pudimos procesar la imagen', {
+        description: 'Selecciona otro archivo e inténtalo nuevamente.',
+      });
     }
   };
 
@@ -117,7 +119,9 @@ export function SettingsAdminPage() {
       });
     } catch (err) {
       console.error(err);
-      toast.error('Error al guardar configuración');
+      toast.error('No pudimos guardar la configuración', {
+        description: 'Los cambios anteriores se mantienen. Inténtalo nuevamente.',
+      });
     }
   };
 

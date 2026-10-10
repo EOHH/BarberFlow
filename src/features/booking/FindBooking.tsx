@@ -102,7 +102,7 @@ export function FindBooking() {
       if (aError) throw aError;
       setAppointments(aData || []);
       
-    } catch (err: any) {
+    } catch {
       setError('Ocurrió un error al buscar tus citas. Inténtalo de nuevo.');
     } finally {
       setLoading(false);
@@ -185,7 +185,7 @@ export function FindBooking() {
                   </div>
 
                   {error && (
-                    <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="text-rose-500 text-xs font-medium">
+                    <motion.p role="alert" aria-live="polite" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="text-rose-500 text-xs font-medium">
                       {error}
                     </motion.p>
                   )}

@@ -82,7 +82,9 @@ export function ServiceFormModal({ isOpen, onClose, onSave, initialData, uploadI
       setFileToUpload(compressedFile);
       setImagePreview(URL.createObjectURL(compressedFile));
     } catch {
-      toast.error('Error al procesar la imagen.');
+      toast.error('No pudimos procesar la imagen', {
+        description: 'Selecciona otro archivo e inténtalo nuevamente.',
+      });
     }
   };
 

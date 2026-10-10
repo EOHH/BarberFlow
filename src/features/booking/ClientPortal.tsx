@@ -55,8 +55,8 @@ export function ClientPortal() {
         if (app.barber_name) {
           setBarber({ name: app.barber_name });
         }
-      } catch (err: any) {
-        setError(err.message);
+      } catch {
+        setError('No pudimos recuperar esta cita.');
       } finally {
         setLoading(false);
       }
