@@ -1,19 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { supabase } from '../../infrastructure/supabase/client';
 import { useAuth } from './AuthContext';
-import { Store, Mail, Lock, Eye, CheckCircle2, Loader2, ArrowRight } from 'lucide-react';
+import { Store, Mail, Lock, Eye, CheckCircle2, Loader2, ArrowRight, Link as LinkIcon } from 'lucide-react';
+import { sanitizeSlug, slugifyShopName } from './onboarding.utils';
 
 export function RegisterPage() {
   const { session, isLoading } = useAuth();
   const navigate = useNavigate();
   
   const [shopName, setShopName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [slugWasEdited, setSlugWasEdited] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const submissionLock = useRef(false);
+
+  useEffect(() => {
+    if (!slugWasEdited) setSlug(slugifyShopName(shopName));
+  }, [shopName, slugWasEdited]);
 
   if (!isLoading && session) {
     return <Navigate to="/admin" replace />;
@@ -21,28 +29,37 @@ export function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submissionLock.current) return;
+
+    submissionLock.current = true;
     setIsSubmitting(true);
     setError('');
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          shop_name: shopName,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/admin`,
+          data: {
+            shop_name: shopName.trim(),
+            shop_slug: slug,
+          },
         },
-      },
-    });
+      });
 
-    if (error) {
-      setError(error.message);
+      if (error) throw error;
+      if (data.session) {
+        navigate('/admin', { replace: true });
+      } else {
+        alert('¡Registro exitoso! Verifica tu correo electrónico para continuar.');
+        navigate('/login', { replace: true });
+      }
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'No se pudo crear la cuenta.');
+    } finally {
+      submissionLock.current = false;
       setIsSubmitting(false);
-    } else if (data.session) {
-      navigate('/onboarding');
-    } else {
-      // Confirmación de email requerida
-      alert('¡Registro exitoso! Por favor, verifica tu correo electrónico para continuar.');
-      navigate('/login');
     }
   };
 
@@ -143,6 +160,28 @@ export function RegisterPage() {
             </div>
 
             <div className="space-y-2">
+              <label className="text-[13px] font-semibold text-white/90 pl-1" htmlFor="shopSlug">
+                Enlace público
+              </label>
+              <div className="relative group">
+                <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 transition-colors group-focus-within:text-[#D4AF37]" />
+                <input
+                  id="shopSlug"
+                  type="text"
+                  value={slug}
+                  onChange={(event) => {
+                    setSlugWasEdited(true);
+                    setSlug(sanitizeSlug(event.target.value));
+                  }}
+                  className="w-full pl-11 pr-4 py-3.5 bg-[#0a0a0a] border border-white/5 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#D4AF37] focus:border-[#D4AF37] transition-all text-sm placeholder:text-zinc-600 text-white"
+                  placeholder="tu-barberia"
+                  required
+                />
+              </div>
+              {slug && <p className="text-[11px] text-zinc-500 pl-1">barberflow.com/booking/{slug}</p>}
+            </div>
+
+            <div className="space-y-2">
               <label className="text-[13px] font-semibold text-white/90 pl-1" htmlFor="password">
                 Contraseña
               </label>
@@ -205,7 +244,7 @@ export function RegisterPage() {
 
             <button
               type="submit"
-              disabled={isSubmitting || !isStrong}
+              disabled={isSubmitting || !isStrong || !shopName.trim() || !slug.trim()}
               className="w-full bg-[#D4AF37] text-black font-bold py-3.5 rounded-xl transition-all duration-300 hover:bg-[#E5C158] hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-[15px] mt-2"
             >
               {isSubmitting ? (

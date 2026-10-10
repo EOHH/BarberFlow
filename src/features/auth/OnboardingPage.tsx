@@ -1,126 +1,137 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
-import { supabase } from '../../infrastructure/supabase/client';
+import { useEffect, useRef, useState } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { AlertCircle, Link as LinkIcon, Loader2, RefreshCw, Store } from 'lucide-react';
 import { useAuth } from './AuthContext';
-import { Store, Loader2, Link as LinkIcon } from 'lucide-react';
+import { onboardingRepository } from '../../infrastructure/supabase/repositories/onboarding.repository';
+import { sanitizeSlug, slugifyShopName } from './onboarding.utils';
 
 export function OnboardingPage() {
-  const { session, isLoading } = useAuth();
+  const {
+    session,
+    isLoading,
+    tenantResolutionStatus,
+    tenantResolutionError,
+    refreshTenantResolution,
+  } = useAuth();
   const navigate = useNavigate();
-  
-  const [shopName, setShopName] = useState(session?.user?.user_metadata?.shop_name || '');
-  const [slug, setSlug] = useState('');
+  const initialName = String(session?.user.user_metadata?.shop_name ?? '');
+  const initialSlug = String(
+    session?.user.user_metadata?.shop_slug ?? slugifyShopName(initialName)
+  );
+  const [shopName, setShopName] = useState(initialName);
+  const [slug, setSlug] = useState(initialSlug);
+  const [slugWasEdited, setSlugWasEdited] = useState(Boolean(initialSlug));
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [checkingTenant, setCheckingTenant] = useState(true);
+  const submissionLock = useRef(false);
+  const prefilledUserId = useRef<string | null>(session?.user.id ?? null);
 
-  // Generador de slug automático a partir del nombre
   useEffect(() => {
-    if (shopName) {
-      const generatedSlug = shopName
-        .toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remover acentos
-        .replace(/[^a-z0-9]/g, '-') // reemplazar no-alfanuméricos con guiones
-        .replace(/-+/g, '-') // colapsar guiones múltiples
-        .replace(/^-|-$/g, ''); // quitar guiones de los extremos
-      setSlug(generatedSlug);
-    } else {
-      setSlug('');
-    }
-  }, [shopName]);
+    if (!session || prefilledUserId.current === session.user.id) return;
 
-  // Verificar si el usuario ya tiene tenant
+    const metadataName = String(session.user.user_metadata?.shop_name ?? '');
+    const metadataSlug = String(session.user.user_metadata?.shop_slug ?? '');
+    setShopName(metadataName);
+    setSlug(metadataSlug || slugifyShopName(metadataName));
+    setSlugWasEdited(Boolean(metadataSlug));
+    prefilledUserId.current = session.user.id;
+  }, [session]);
+
   useEffect(() => {
-    async function checkExistingTenant() {
-      if (!session) return;
-      try {
-        const { data, error } = await supabase.from('tenant_users').select('tenant_id').eq('user_id', session.user.id).maybeSingle();
-        if (data && !error) {
-          // Ya tiene tenant, redirigir a dashboard
-          navigate('/admin');
-        }
-      } catch (e) {
-        // Ignorar
-      } finally {
-        setCheckingTenant(false);
-      }
-    }
-    
-    if (!isLoading && session) {
-      checkExistingTenant();
-    } else if (!isLoading && !session) {
-      setCheckingTenant(false);
-    }
-  }, [session, isLoading, navigate]);
+    if (!slugWasEdited) setSlug(slugifyShopName(shopName));
+  }, [shopName, slugWasEdited]);
 
-  if (isLoading || checkingTenant) {
+  if (isLoading || ['idle', 'loading'].includes(tenantResolutionStatus)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#121212]">
-        <Loader2 className="w-10 h-10 animate-spin text-[#D4AF37]" />
+        <div className="text-center space-y-4">
+          <Loader2 className="w-10 h-10 animate-spin text-[#D4AF37] mx-auto" />
+          <p className="text-sm text-zinc-400">Verificando tu cuenta y barbería…</p>
+        </div>
       </div>
     );
   }
 
-  if (!session) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!session) return <Navigate to="/login" replace />;
+  if (tenantResolutionStatus === 'ready') return <Navigate to="/admin" replace />;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!shopName || !slug) return;
-    
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (submissionLock.current || !shopName.trim() || !slug.trim()) return;
+
+    submissionLock.current = true;
     setIsSubmitting(true);
     setError('');
 
     try {
-      // Llamar a la RPC segura
-      const { error } = await supabase.rpc('onboard_tenant', {
-        p_shop_name: shopName,
-        p_slug: slug
-      });
-
-      if (error) {
-        throw new Error(error.message);
+      const resolution = await onboardingRepository.complete(shopName.trim(), slug.trim());
+      if (resolution.status !== 'ready') {
+        throw new Error('No se pudo completar la asociación con tu barbería.');
       }
-
-      // Éxito, redirigir al admin
-      navigate('/admin');
-    } catch (err: any) {
-      const errorMessage = err.message || '';
-      if (errorMessage.includes('duplicate key') || errorMessage.includes('unique constraint')) {
-        setError('Ese enlace público (slug) ya está en uso por otra barbería. Por favor, modifícalo un poco (ej. agregando tu ciudad o un número).');
+      await refreshTenantResolution();
+      navigate('/admin', { replace: true });
+    } catch (caughtError) {
+      const message = caughtError instanceof Error ? caughtError.message : '';
+      if (message.includes('SLUG_TAKEN') || message.includes('duplicate key')) {
+        setError('Ese enlace público ya pertenece a otra barbería. Elige uno diferente.');
+      } else if (message.includes('ONBOARDING_AMBIGUOUS')) {
+        setError('Tu cuenta requiere revisión porque tiene más de una barbería propietaria. Contacta a soporte.');
       } else {
-        setError(errorMessage || 'Error al crear la barbería. Intenta con otro nombre.');
+        setError(message || 'No pudimos completar la configuración. Revisa tu conexión e inténtalo nuevamente.');
       }
+    } finally {
+      submissionLock.current = false;
       setIsSubmitting(false);
     }
   };
+
+  if (tenantResolutionStatus === 'error') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#121212] p-6 text-white">
+        <div className="max-w-md text-center space-y-4">
+          <AlertCircle className="w-12 h-12 text-amber-500 mx-auto" />
+          <h1 className="text-2xl font-bold">No pudimos recuperar tu barbería</h1>
+          <p className="text-sm text-zinc-400">{tenantResolutionError}</p>
+          <button
+            type="button"
+            onClick={() => void refreshTenantResolution()}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#D4AF37] px-5 py-3 font-bold text-black"
+          >
+            <RefreshCw className="w-4 h-4" /> Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full flex bg-[#121212] text-white font-sans selection:bg-[#D4AF37] selection:text-black">
       <div className="w-full max-w-md mx-auto mt-20 p-8">
         <div className="text-center mb-10">
           <Store className="w-16 h-16 mx-auto text-[#D4AF37] mb-6" />
-          <h1 className="text-3xl font-bold tracking-tight mb-3">Crea tu Barbería</h1>
+          <h1 className="text-3xl font-bold tracking-tight mb-3">Completa tu Barbería</h1>
           <p className="text-gray-400">
-            Falta un paso más. Ingresa el nombre de tu barbería para generar tu página pública de reservas.
+            No encontramos una barbería asociada a tu cuenta. Confirma los datos faltantes para continuar.
           </p>
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500 text-red-500 p-4 rounded-lg mb-6 text-sm">
+          <div className="bg-red-500/10 border border-red-500 text-red-400 p-4 rounded-lg mb-6 text-sm">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300 ml-1">Nombre de la Barbería</label>
+            <label className="text-sm font-medium text-gray-300 ml-1" htmlFor="onboarding-shop-name">
+              Nombre de la Barbería
+            </label>
             <input
+              id="onboarding-shop-name"
               type="text"
               required
               value={shopName}
-              onChange={(e) => setShopName(e.target.value)}
+              onChange={(event) => setShopName(event.target.value)}
               className="w-full bg-[#1A1A1A] border border-gray-800 rounded-lg px-4 py-3 focus:outline-none focus:border-[#D4AF37] transition-colors text-white"
               placeholder="Ej. The Gentleman's Barber"
               disabled={isSubmitting}
@@ -128,16 +139,22 @@ export function OnboardingPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300 ml-1">Tu Enlace Público</label>
+            <label className="text-sm font-medium text-gray-300 ml-1" htmlFor="onboarding-slug">
+              Tu Enlace Público
+            </label>
             <div className="flex relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <LinkIcon className="h-5 w-5 text-gray-500" />
               </div>
               <input
+                id="onboarding-slug"
                 type="text"
                 required
                 value={slug}
-                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                onChange={(event) => {
+                  setSlugWasEdited(true);
+                  setSlug(sanitizeSlug(event.target.value));
+                }}
                 className="w-full bg-[#1A1A1A] border border-gray-800 rounded-lg pl-11 pr-4 py-3 focus:outline-none focus:border-[#D4AF37] transition-colors text-white"
                 placeholder="tu-barberia"
                 disabled={isSubmitting}
@@ -145,23 +162,21 @@ export function OnboardingPage() {
             </div>
             {slug && (
               <p className="text-xs text-[#D4AF37] mt-2 ml-1">
-                Tus clientes reservarán en: <span className="font-mono bg-black/50 px-2 py-1 rounded">barberflow.com/booking/{slug}</span>
+                Tus clientes reservarán en:{' '}
+                <span className="font-mono bg-black/50 px-2 py-1 rounded">barberflow.com/booking/{slug}</span>
               </p>
             )}
           </div>
 
           <button
             type="submit"
-            disabled={isSubmitting || !shopName || !slug}
+            disabled={isSubmitting || !shopName.trim() || !slug.trim()}
             className="w-full bg-[#D4AF37] hover:bg-[#BBA036] text-black font-semibold py-3 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
           >
             {isSubmitting ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Creando barbería...</span>
-              </>
+              <><Loader2 className="w-5 h-5 animate-spin" /><span>Configurando…</span></>
             ) : (
-              <span>Finalizar y Entrar</span>
+              <span>Finalizar y entrar</span>
             )}
           </button>
         </form>
