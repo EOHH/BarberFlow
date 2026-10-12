@@ -13,6 +13,7 @@ import {
   EXPIRED_STATUS_BADGE_CLASS,
   EXPIRED_STATUS_SURFACE_CLASS,
 } from '../../shared/utils/appointmentStatusStyles';
+import { ConfirmDialog } from '../../shared/components/ConfirmDialog';
 
 const TIME_ZONE = 'America/Lima';
 const START_HOUR = 8; // 08:00 AM
@@ -44,6 +45,8 @@ export function AdminAppointmentsPage() {
 
   const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
   const [selectedBarberId, setSelectedBarberId] = useState<string | null>(null);
+  const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
+  const [isCancellingAppointment, setIsCancellingAppointment] = useState(false);
 
   useEffect(() => {
     if (selectedAppt) {
@@ -62,8 +65,25 @@ export function AdminAppointmentsPage() {
       if (selectedAppt && selectedAppt.id === id) {
         setSelectedAppt({ ...selectedAppt, status });
       }
-    } catch (e) {
+    } catch {
       // Error handled by hook
+    }
+  };
+
+  const handleConfirmCancellation = async () => {
+    if (!appointmentToCancel) return;
+
+    setIsCancellingAppointment(true);
+    try {
+      await updateStatus({ id: appointmentToCancel.id, status: 'cancelled' });
+      if (selectedAppt?.id === appointmentToCancel.id) {
+        setSelectedAppt({ ...selectedAppt, status: 'cancelled' });
+      }
+      setAppointmentToCancel(null);
+    } catch {
+      // Error and optimistic rollback are handled by useAdminAppointments.
+    } finally {
+      setIsCancellingAppointment(false);
     }
   };
 
@@ -617,7 +637,7 @@ export function AdminAppointmentsPage() {
                 return (
                   <>
                     <button
-                      onClick={() => handleUpdateStatus(selectedAppt.id, 'cancelled')}
+                      onClick={() => setAppointmentToCancel(selectedAppt)}
                       className="flex items-center justify-center gap-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white px-4 py-3 rounded-xl font-bold transition-colors"
                     >
                       <XCircle className="w-4 h-4" /> Cancelar cita
@@ -653,6 +673,18 @@ export function AdminAppointmentsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={appointmentToCancel !== null}
+        title="Cancelar cita"
+        description={appointmentToCancel
+          ? `Se cancelará la cita de ${appointmentToCancel.client_name} para ${appointmentToCancel.service_name_snapshot}, el ${formatInTimeZone(new Date(`${appointmentToCancel.date}T${appointmentToCancel.time}`), TIME_ZONE, "dd/MM/yyyy 'a las' hh:mm a")}. Esta acción liberará el horario.`
+          : ''}
+        confirmLabel="Cancelar cita"
+        isPending={isCancellingAppointment}
+        onCancel={() => setAppointmentToCancel(null)}
+        onConfirm={() => void handleConfirmCancellation()}
+      />
 
     </div>
   );

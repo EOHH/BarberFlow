@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { usePublicBooking } from '../../shared/hooks/usePublicBooking';
 import { usePublicGallery } from '../../shared/hooks/usePublicGallery';
@@ -56,6 +56,8 @@ export function BookingPage() {
   };
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [createdAppointment, setCreatedAppointment] = useState<Appointment | null>(null);
+  const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
+  const bookingSubmissionLock = useRef(false);
 
   const { tenantData } = usePublicTenant(slug);
   // Usa tenantData.tenant si está disponible, sino un fallback
@@ -114,8 +116,11 @@ export function BookingPage() {
   };
 
   const handleBookingSubmit = async (clientName: string, phone: string) => {
+    if (bookingSubmissionLock.current) return;
     if (!selectedService || !selectedDate || !selectedTime || !selectedBarber) return;
-    
+
+    bookingSubmissionLock.current = true;
+    setIsSubmittingBooking(true);
     try {
       const appointment = await bookingRepository.createAppointment({
         slug: slug || '',
@@ -128,11 +133,13 @@ export function BookingPage() {
       });
       setCreatedAppointment(appointment);
       setStep(6); // Now it's step 6
-    } catch (err: any) {
-      console.error(err);
+    } catch {
       toast.error('No pudimos crear la reserva', {
         description: 'El horario pudo cambiar. Selecciona otro o inténtalo nuevamente.',
       });
+    } finally {
+      bookingSubmissionLock.current = false;
+      setIsSubmittingBooking(false);
     }
   };
 
@@ -722,7 +729,7 @@ export function BookingPage() {
               {step === 5 && selectedService && (
                 <BookingForm
                   onSubmit={handleBookingSubmit}
-                  isSubmitting={false}
+                  isSubmitting={isSubmittingBooking}
                   theme={theme}
                 />
               )}
