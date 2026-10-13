@@ -85,6 +85,8 @@ export interface Appointment {
 
 export interface Client {
   id: string;
+  persisted_id: string | null;
+  is_virtual: boolean;
   tenant_id?: string;
   name: string;
   phone: string;

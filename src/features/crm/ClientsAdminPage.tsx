@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useClientsAdmin } from '../../shared/hooks/useClientsAdmin';
 import type { Client } from '../../types';
 import { Search, User, Phone, DollarSign, Calendar, FileText, X } from 'lucide-react';
@@ -12,6 +12,7 @@ export function ClientsAdminPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [notesDraft, setNotesDraft] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const saveNotesInFlightRef = useRef(false);
 
   const { tenant } = useTenantSettings();
   const themeClasses = getThemeClasses(tenant?.theme_color);
@@ -32,17 +33,35 @@ export function ClientsAdminPage() {
   };
 
   const handleSaveNotes = async () => {
-    if (!selectedClient) return;
+    if (!selectedClient || saveNotesInFlightRef.current) return;
+
+    const clientBeingSaved = selectedClient;
+    const notesBeingSaved = notesDraft;
+    saveNotesInFlightRef.current = true;
     setIsSavingNotes(true);
     try {
-      await updateClientNotes({ id: selectedClient.id, notes: notesDraft });
-      setSelectedClient({ ...selectedClient, private_notes: notesDraft });
+      const result = await updateClientNotes({
+        client: clientBeingSaved,
+        notes: notesBeingSaved,
+      });
+      setSelectedClient((currentClient) =>
+        currentClient?.id === clientBeingSaved.id
+          ? {
+              ...currentClient,
+              id: result.clientId,
+              persisted_id: result.clientId,
+              is_virtual: false,
+              private_notes: result.privateNotes,
+            }
+          : currentClient
+      );
       toast.success("Notas guardadas correctamente");
     } catch {
       toast.error('No pudimos guardar las notas', {
         description: 'Los cambios no se aplicaron. Inténtalo nuevamente.',
       });
     } finally {
+      saveNotesInFlightRef.current = false;
       setIsSavingNotes(false);
     }
   };
@@ -169,10 +188,11 @@ export function ClientsAdminPage() {
                   placeholder="Ej. Alergia a la navaja, le gusta el café con azúcar..."
                   className="w-full h-32 px-4 py-3 bg-slate-50 dark:bg-[#141414] border border-slate-200 dark:border-zinc-800/50 rounded-xl focus:ring-2 focus:ring-black/5 dark:focus:ring-white/5 outline-none resize-none text-sm font-medium text-slate-700 dark:text-zinc-300 placeholder:text-slate-400 dark:placeholder:text-zinc-600"
                 />
-                {notesDraft !== selectedClient.private_notes && (
+                {notesDraft !== (selectedClient.private_notes ?? '') && (
                   <button 
                     onClick={handleSaveNotes}
                     disabled={isSavingNotes}
+                    aria-busy={isSavingNotes}
                     className={`w-full py-3.5 ${themeClasses.bg} text-white text-sm font-bold rounded-xl transition-all active:scale-95 shadow-md`}
                   >
                     {isSavingNotes ? 'Guardando...' : 'Guardar Notas'}
