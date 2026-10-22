@@ -36,6 +36,13 @@ export function FindBooking() {
   const [error, setError] = useState('');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
+  // Asegurar que al montar la vista de Mis Citas inicie siempre en la parte superior
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
   // Guardar en sessionStorage cuando cambien
   useEffect(() => {
     sessionStorage.setItem('findBookingPhone', phone);

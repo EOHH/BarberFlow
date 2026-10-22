@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import type { Service } from '../../../types';
-import { Scissors } from 'lucide-react';
+import { Scissors, Clock, Search, X, ArrowRight, ChevronRight } from 'lucide-react';
 import type { ThemeClasses } from '../../../shared/utils/theme';
 
 interface Props {
@@ -13,46 +13,56 @@ interface Props {
 
 export function ServiceSelection({ services, selectedServiceId, onSelect, isLoading, theme }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('Todos');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const categories = useMemo(() => {
-    if (!services || services.length === 0) return ['Todos'];
-    const cats = new Set<string>();
+  // Extract unique categories and calculate counts
+  const categoryData = useMemo(() => {
+    if (!services || services.length === 0) return [{ name: 'Todos', count: 0 }];
+    const counts: Record<string, number> = { Todos: services.length };
+    
     services.forEach(s => {
-      const catName = s.category?.name;
-      if (catName && catName.trim() !== '') {
-        cats.add(catName.trim());
-      } else {
-        cats.add('Otros');
-      }
+      const rawCat = s.category?.name?.trim();
+      const cat = rawCat && rawCat !== '' ? rawCat : 'Otros';
+      counts[cat] = (counts[cat] || 0) + 1;
     });
-    return ['Todos', ...Array.from(cats).sort()];
+
+    const categoryNames = Object.keys(counts).filter(c => c !== 'Todos').sort();
+    return [
+      { name: 'Todos', count: services.length },
+      ...categoryNames.map(name => ({ name, count: counts[name] }))
+    ];
   }, [services]);
 
+  // Filter services by category and search query
   const filteredServices = useMemo(() => {
-    let result = services;
-    if (activeCategory !== 'Todos') {
-      result = result.filter(s => {
-        const catName = s.category?.name;
-        const cat = (catName && catName.trim() !== '') ? catName.trim() : 'Otros';
-        return cat === activeCategory;
-      });
-    }
-    return result;
-  }, [services, activeCategory]);
+    return services.filter(s => {
+      // Category match
+      const catName = s.category?.name?.trim() || 'Otros';
+      const matchesCategory = activeCategory === 'Todos' || catName === activeCategory;
+
+      // Search match
+      const query = searchQuery.trim().toLowerCase();
+      const matchesSearch = !query || 
+        s.name.toLowerCase().includes(query) || 
+        (s.description && s.description.toLowerCase().includes(query));
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [services, activeCategory, searchQuery]);
 
   if (isLoading) {
     return (
       <div className="w-full">
-        {/* Skeletons Búsqueda */}
-        <div className="h-12 w-full bg-muted/60 animate-pulse rounded-2xl mb-6"></div>
-        {/* Skeletons Pills */}
-        <div className="flex gap-2 mb-6 overflow-x-hidden">
-          {[1, 2, 3, 4].map(i => <div key={i} className="h-10 w-24 bg-muted/60 animate-pulse rounded-full shrink-0"></div>)}
+        {/* Skeleton Category Pills */}
+        <div className="flex gap-2.5 mb-8 overflow-x-hidden">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="h-10 w-28 bg-zinc-900/80 border border-zinc-800 animate-pulse rounded-full shrink-0" />
+          ))}
         </div>
-        {/* Skeletons Cards */}
-        <div className="flex flex-col gap-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-32 bg-muted/60 animate-pulse rounded-2xl"></div>
+        {/* Skeleton Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-72 bg-zinc-900/60 border border-zinc-800/80 animate-pulse rounded-2xl" />
           ))}
         </div>
       </div>
@@ -60,120 +70,208 @@ export function ServiceSelection({ services, selectedServiceId, onSelect, isLoad
   }
 
   if (services.length === 0) {
-    return <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-      <Scissors className="w-12 h-12 text-muted-foreground/30 mb-4" />
-      <h3 className="text-lg font-semibold mb-1">Sin Servicios</h3>
-      <p className="text-muted-foreground text-sm">No hay servicios disponibles en este momento.</p>
-    </div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-6 text-center bg-[#121212] border border-zinc-800/80 rounded-3xl">
+        <div className="w-16 h-16 rounded-2xl bg-zinc-900 flex items-center justify-center mb-4 text-zinc-500">
+          <Scissors className="w-8 h-8" />
+        </div>
+        <h3 className="text-xl font-bold text-white mb-1">No hay servicios disponibles</h3>
+        <p className="text-zinc-500 text-sm max-w-sm">Pronto añadiremos nuevos servicios al catálogo.</p>
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col w-full">
+    <div id="catalogo" className="flex flex-col w-full">
       
-      {/* Cabecera (Título y Filtro) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <h3 className="text-2xl font-bold text-white">Nuestros Servicios</h3>
+      {/* Desktop Section Header (Hidden on Mobile) */}
+      <div className="hidden md:flex items-end justify-between mb-8">
+        <div>
+          <span className={`text-xs font-bold tracking-[0.25em] ${theme.text} uppercase block mb-1.5`}>
+            NUESTROS SERVICIOS
+          </span>
+          <h2 className="text-3xl lg:text-4xl font-serif font-bold text-white tracking-tight">
+            Elige tu estilo
+          </h2>
+          <p className="text-zinc-400 text-xs sm:text-sm mt-1">
+            Servicios profesionales para resaltar tu look y personalidad.
+          </p>
+        </div>
 
-        {/* Dropdown Filtro */}
-        <div className="relative w-full md:w-[220px]">
-          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-            <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" /></svg>
+        <button
+          onClick={() => {
+            setActiveCategory('Todos');
+            setSearchQuery('');
+          }}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold text-zinc-300 bg-zinc-900/80 hover:bg-zinc-800 hover:text-white border border-zinc-800 transition-all cursor-pointer"
+        >
+          <span>Todos los servicios</span>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Categories & Search Toolbar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+        
+        {/* Horizontal Category Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none no-scrollbar">
+          {categoryData.map(cat => {
+            const isActive = activeCategory === cat.name;
+            return (
+              <button
+                key={cat.name}
+                onClick={() => setActiveCategory(cat.name)}
+                className={`group shrink-0 inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200 active:scale-95 cursor-pointer ${
+                  isActive
+                    ? `${theme.bg} text-white shadow-md shadow-black/40 border border-transparent`
+                    : 'bg-zinc-900/90 text-zinc-400 hover:text-white hover:bg-zinc-850 border border-zinc-800/80 hover:border-zinc-700'
+                }`}
+              >
+                <span>{cat.name}</span>
+                <span
+                  className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full transition-colors ${
+                    isActive ? 'bg-black/20 text-white' : 'bg-zinc-800 text-zinc-400 group-hover:text-zinc-200'
+                  }`}
+                >
+                  {cat.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search Input Bar */}
+        <div className="relative w-full md:w-72 shrink-0">
+          <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-zinc-500">
+            <Search className="w-4 h-4" />
           </div>
-          <select
-            value={activeCategory}
-            onChange={(e) => setActiveCategory(e.target.value)}
-            className={`w-full pl-10 pr-10 py-3 bg-[#141414] border border-zinc-800 text-zinc-200 rounded-xl appearance-none shadow-sm focus:ring-1 focus:${theme.ring} focus:${theme.border} outline-none text-sm cursor-pointer hover:border-zinc-700 transition-colors`}
-          >
-            {categories.map(category => (
-              <option key={category} value={category}>{category === 'Todos' ? 'Ver paquetes' : category}</option>
-            ))}
-          </select>
-          <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-            <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar corte o tratamiento..."
+            className="w-full pl-10 pr-9 py-2.5 bg-zinc-900/90 border border-zinc-800/80 text-zinc-200 placeholder-zinc-500 text-xs rounded-full focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition-colors shadow-sm"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-3 flex items-center text-zinc-500 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Lista de Servicios (Grid Responsivo Mockup) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in slide-in-from-bottom-4 fade-in duration-500">
-        {filteredServices.map((service) => (
+      {/* Services Grid */}
+      {filteredServices.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {filteredServices.map((service) => {
+            const isSelected = selectedServiceId === service.id;
+
+            return (
+              <div
+                key={service.id}
+                onClick={() => onSelect(service.id)}
+                className={`group relative flex flex-col text-left overflow-hidden rounded-2xl bg-[#121212] border backdrop-blur-sm cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/70 ${
+                  isSelected
+                    ? `border-2 ${theme.border} ${theme.bgLight} shadow-lg ring-1 ${theme.ring}`
+                    : 'border-zinc-800/90 hover:border-zinc-700/90'
+                }`}
+              >
+                {/* Image Container */}
+                <div className="relative w-full h-48 sm:h-44 bg-zinc-950 overflow-hidden shrink-0">
+                  {service.image_url ? (
+                    <img
+                      src={service.image_url}
+                      alt={service.name}
+                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-900 via-[#161616] to-zinc-950">
+                      <Scissors className="w-10 h-10 text-zinc-700 group-hover:text-zinc-500 transition-colors" />
+                    </div>
+                  )}
+
+                  {/* Gradient mask */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-transparent to-black/20 pointer-events-none" />
+
+                  {/* Badges Overlay */}
+                  <div className="absolute top-3 right-3 pointer-events-none">
+                    {/* Duration Badge */}
+                    <span className="inline-flex items-center gap-1 bg-black/75 backdrop-blur-md text-zinc-200 font-medium text-[11px] px-2.5 py-1 rounded-full border border-white/10 shadow-sm">
+                      <Clock className="w-3 h-3 text-zinc-400" />
+                      {service.duration_minutes} min
+                    </span>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-4 sm:p-5 flex flex-col flex-1">
+                  <h3 className="font-bold text-base text-white tracking-tight group-hover:text-zinc-100 transition-colors line-clamp-1 mb-1">
+                    {service.name}
+                  </h3>
+
+                  {service.description ? (
+                    <p className="text-zinc-400 text-xs leading-relaxed line-clamp-2 mb-4 flex-1">
+                      {service.description}
+                    </p>
+                  ) : (
+                    <div className="flex-1 mb-4" />
+                  )}
+
+                  {/* Price & Action Row */}
+                  <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between mt-auto">
+                    <div>
+                      <span className={`text-lg font-black tracking-tight ${theme.text}`}>
+                        S/ {Number(service.price).toFixed(2)}
+                      </span>
+                    </div>
+
+                    {/* Desktop Circle Arrow Button */}
+                    <div className="hidden md:flex">
+                      <div className={`w-9 h-9 rounded-full bg-zinc-800/90 text-zinc-300 group-hover:${theme.bg} group-hover:text-white flex items-center justify-center transition-all duration-200 shadow-sm`}>
+                        <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                      </div>
+                    </div>
+
+                    {/* Mobile Reservar Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect(service.id);
+                      }}
+                      className={`md:hidden inline-flex items-center gap-1 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 shadow-md ${
+                        isSelected
+                          ? `${theme.bg} text-white shadow-black/40`
+                          : `${theme.bg} text-white`
+                      }`}
+                    >
+                      <span>Reservar</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-16 px-6 text-center bg-[#121212] border border-zinc-800/80 rounded-3xl">
+          <Search className="w-10 h-10 text-zinc-700 mb-3" />
+          <h4 className="text-base font-bold text-zinc-300 mb-1">Sin resultados para "{searchQuery}"</h4>
+          <p className="text-zinc-500 text-xs mb-4">Intenta buscar con otra palabra o revisa otra categoría.</p>
           <button
-            key={service.id}
-            onClick={() => onSelect(service.id)}
-            className={`group flex flex-row md:flex-col text-left overflow-hidden rounded-2xl transition-all duration-300 active:scale-[0.98] ${
-              selectedServiceId === service.id
-                ? `border ${theme.border} ${theme.bgLight} shadow-lg shadow-black/40`
-                : 'border border-zinc-800 bg-[#141414] hover:border-zinc-700 hover:-translate-y-1'
-            }`}
+            onClick={() => {
+              setSearchQuery('');
+              setActiveCategory('Todos');
+            }}
+            className="text-xs font-semibold text-zinc-300 hover:text-white underline cursor-pointer"
           >
-            {/* Desktop: Top Half / Mobile: Left Square */}
-            <div className="w-24 md:w-full h-auto md:h-44 bg-zinc-900 relative shrink-0">
-              {service.image_url ? (
-                <>
-                  <img 
-                    src={service.image_url} 
-                    alt={service.name} 
-                    className="w-full h-full object-cover transition-transform duration-700 md:group-hover:scale-105"
-                  />
-                  {/* Gradiente solo en Desktop */}
-                  <div className="hidden md:block absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#141414] to-transparent pointer-events-none" />
-                </>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-zinc-800">
-                  <Scissors className="w-8 h-8 md:w-10 md:h-10 text-zinc-700" />
-                  <div className="hidden md:block absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#141414] to-transparent pointer-events-none" />
-                </div>
-              )}
-              
-              {/* Etiqueta Popular (Opcional, mock) */}
-              <div className="absolute top-3 left-3 bg-emerald-500 text-[#0a0a0a] text-[9px] md:text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider">
-                Popular
-              </div>
-
-              {/* Circular Icon Floating (Desktop Only) */}
-              <div className="hidden md:flex absolute -bottom-5 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full border border-zinc-700 bg-[#0a0a0a] items-center justify-center z-20">
-                 <Scissors className={`w-4 h-4 ${theme.text}`} />
-              </div>
-            </div>
-
-            {/* Contenido */}
-            <div className="p-4 md:px-5 md:pt-8 md:pb-5 flex flex-col flex-1 relative z-10">
-              <h3 className="font-bold text-base md:text-lg text-white leading-tight mb-1">{service.name}</h3>
-              <p className="text-zinc-400 text-xs md:text-[13px] line-clamp-2 md:line-clamp-3 mb-4 leading-relaxed">
-                {service.description || 'Degradado perfecto a navaja con acabado premium.'}
-              </p>
-              
-              <div className="mt-auto flex items-center justify-between w-full pb-3 md:pb-4 border-b border-zinc-800 border-dashed md:border-none">
-                <span className="inline-flex items-center gap-1.5 text-zinc-400 text-xs font-medium">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  {service.duration_minutes} min
-                </span>
-                <span className={`font-semibold ${theme.text} text-sm tracking-tight`}>S/ {Number(service.price).toFixed(2)}</span>
-              </div>
-              
-              {/* Botón Desktop (Reservar ->) */}
-              <div className="hidden md:flex items-center justify-center pt-4 w-full group/btn">
-                <span className="text-zinc-300 text-sm font-medium group-hover/btn:text-white transition-colors flex items-center gap-2">
-                  Reservar <span className={`${theme.text}`}>→</span>
-                </span>
-              </div>
-
-              {/* Botón Circular Mobile */}
-              <div className="md:hidden absolute right-4 top-1/2 -translate-y-1/2">
-                <div className={`w-8 h-8 rounded-full border border-zinc-700 flex items-center justify-center transition-colors ${
-                  selectedServiceId === service.id ? `${theme.bg} ${theme.border} text-[#0a0a0a]` : 'bg-[#141414] text-zinc-400'
-                }`}>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                </div>
-              </div>
-            </div>
+            Ver todos los servicios
           </button>
-        ))}
-      </div>
-      
-      {filteredServices.length === 0 && (
-        <div className="text-center py-12 px-4 border border-zinc-800 border-dashed rounded-3xl mt-4">
-          <p className="text-zinc-500 font-medium text-lg">No se encontraron servicios.</p>
         </div>
       )}
     </div>
